@@ -77,14 +77,15 @@ lukas-app/
 │   │   ├── supabase/
 │   │   │   ├── client.ts       # cliente de navegador
 │   │   │   ├── server.ts       # cliente de servidor
-│   │   │   └── middleware.ts   # refresco de sesión
+│   │   │   ├── env.ts          # lee y valida las variables de Supabase
+│   │   │   └── proxy.ts        # updateSession: refresco de sesión
 │   │   ├── validations/        # esquemas zod
 │   │   └── utils/
 │   │       ├── money.ts        # formatCOP, parseCOP
 │   │       └── dates.ts
 │   ├── types/
 │   │   └── database.ts         # generado con `supabase gen types`
-│   └── middleware.ts           # protege las rutas de (app)
+│   └── proxy.ts                # Next 16 (antes middleware.ts): sesión y protección de rutas
 ├── supabase/
 │   ├── migrations/
 │   └── seed.sql
@@ -159,13 +160,13 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 ### v0.1: MVP ← **EMPEZAR AQUÍ**
 - [x] Inicializar Next.js + TypeScript + Tailwind + ESLint + Prettier
 - [x] Configurar shadcn/ui
-- [ ] Configurar clientes de Supabase (`@supabase/ssr`) y middleware de sesión
+- [x] Configurar clientes de Supabase (`@supabase/ssr`) y proxy de sesión
 - [ ] Migración inicial: `profiles` (con trigger), `categories`, `transactions` + RLS
 - [ ] `seed.sql` con categorías predeterminadas:
   - Gastos: Comida, Transporte, Universidad, Hogar, Servicios, Salud, Entretenimiento, Ropa, Otros
   - Ingresos: Salario, Mesada, Freelance, Otros
 - [ ] Autenticación: correo y contraseña + Google OAuth; páginas de login y registro
-- [ ] Protección de rutas con middleware
+- [ ] Protección de rutas con proxy (`src/proxy.ts`)
 - [ ] CRUD de transacciones (crear, listar con filtro por mes, editar, eliminar)
 - [ ] Dashboard: balance del mes (ingresos − gastos), gráfica de dona de gastos por categoría y últimos 5 movimientos
 - [ ] Utilidades `formatCOP` / `parseCOP` con tests
