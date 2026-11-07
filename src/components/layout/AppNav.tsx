@@ -3,6 +3,7 @@
 import { LayoutDashboard, PiggyBank, ReceiptText, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Suspense } from 'react';
 
 import { cn } from '@/lib/utils/cn';
 
@@ -14,8 +15,65 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/metas', label: 'Metas', icon: PiggyBank },
 ];
 
-function isActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+function isActive(pathname: string | null, href: string) {
+  return pathname !== null && (pathname === href || pathname.startsWith(`${href}/`));
+}
+
+type Variant = 'header' | 'bottom';
+
+/** The links themselves; `pathname` null means "no active item" (Suspense fallback). */
+function NavLinks({ variant, pathname }: { variant: Variant; pathname: string | null }) {
+  return NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+    const active = isActive(pathname, href);
+    const link =
+      variant === 'header' ? (
+        <Link
+          key={href}
+          href={href}
+          aria-current={active ? 'page' : undefined}
+          className={cn(
+            'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+            active && 'bg-muted text-foreground',
+          )}
+        >
+          <Icon className="size-4" aria-hidden />
+          {label}
+        </Link>
+      ) : (
+        <li key={href}>
+          <Link
+            href={href}
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+              'flex h-full flex-col items-center justify-center gap-1 text-xs text-muted-foreground',
+              active && 'font-semibold text-foreground',
+            )}
+          >
+            <Icon className="size-5" aria-hidden />
+            {label}
+          </Link>
+        </li>
+      );
+    return link;
+  });
+}
+
+/**
+ * Reads the current path to mark the active link. On dynamic routes
+ * (/metas/[id]) the path is request data, so with cacheComponents it must
+ * render inside <Suspense>; the fallback shows the same links unmarked.
+ */
+function ActiveNavLinks({ variant }: { variant: Variant }) {
+  const pathname = usePathname();
+  return <NavLinks variant={variant} pathname={pathname} />;
+}
+
+function Links({ variant }: { variant: Variant }) {
+  return (
+    <Suspense fallback={<NavLinks variant={variant} pathname={null} />}>
+      <ActiveNavLinks variant={variant} />
+    </Suspense>
+  );
 }
 
 /**
@@ -25,8 +83,6 @@ function isActive(pathname: string, href: string) {
  * --bottom-nav-height (globals.css).
  */
 export function AppNav({ userMenu }: { userMenu: React.ReactNode }) {
-  const pathname = usePathname();
-
   return (
     <>
       <header className="border-b">
@@ -35,23 +91,7 @@ export function AppNav({ userMenu }: { userMenu: React.ReactNode }) {
             Lukas
           </Link>
           <nav aria-label="Principal" className="hidden items-center gap-1 sm:flex">
-            {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-              const active = isActive(pathname, href);
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
-                    active && 'bg-muted text-foreground',
-                  )}
-                >
-                  <Icon className="size-4" aria-hidden />
-                  {label}
-                </Link>
-              );
-            })}
+            <Links variant="header" />
           </nav>
           <div className="ml-auto flex items-center">{userMenu}</div>
         </div>
@@ -63,24 +103,7 @@ export function AppNav({ userMenu }: { userMenu: React.ReactNode }) {
         className="fixed inset-x-0 bottom-0 z-30 border-t bg-background pb-[env(safe-area-inset-bottom)] sm:hidden"
       >
         <ul className="grid h-(--bottom-nav-height) grid-cols-3">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const active = isActive(pathname, href);
-            return (
-              <li key={href}>
-                <Link
-                  href={href}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'flex h-full flex-col items-center justify-center gap-1 text-xs text-muted-foreground',
-                    active && 'font-semibold text-foreground',
-                  )}
-                >
-                  <Icon className="size-5" aria-hidden />
-                  {label}
-                </Link>
-              </li>
-            );
-          })}
+          <Links variant="bottom" />
         </ul>
       </nav>
     </>
