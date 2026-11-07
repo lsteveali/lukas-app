@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { MonthNav } from '@/components/transactions/MonthNav';
-import { MovedNoticeProvider } from '@/components/transactions/MovedNotice';
 import { NewTransactionDialog } from '@/components/transactions/NewTransactionDialog';
 import { TransactionList } from '@/components/transactions/TransactionList';
 import type { CategoryOption, TransactionListItem } from '@/components/transactions/types';
@@ -80,16 +79,13 @@ async function TransactionsView({
       <div className="contents sm:flex sm:justify-end">
         <NewTransactionDialog categories={categories} currentMonth={monthParam} floating />
       </div>
-      {/* Shows "Movido a …" when an edit moves a transaction to another month. */}
-      <MovedNoticeProvider>
-        <TransactionList
-          transactions={transactions}
-          categories={categories}
-          currentMonth={monthParam}
-          monthLabel={monthLabel}
-          emptyAction={<NewTransactionDialog categories={categories} currentMonth={monthParam} />}
-        />
-      </MovedNoticeProvider>
+      <TransactionList
+        transactions={transactions}
+        categories={categories}
+        currentMonth={monthParam}
+        monthLabel={monthLabel}
+        emptyAction={<NewTransactionDialog categories={categories} currentMonth={monthParam} />}
+      />
     </>
   );
 }

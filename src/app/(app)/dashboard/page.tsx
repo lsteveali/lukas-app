@@ -5,12 +5,14 @@ import { Suspense } from 'react';
 
 import { ExpensesDonut } from '@/components/dashboard/ExpensesDonut';
 import { ExpensesLegend } from '@/components/dashboard/ExpensesLegend';
+import { BudgetAlerts } from '@/components/dashboard/BudgetAlerts';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { SummaryCards } from '@/components/dashboard/SummaryCards';
 import { MonthNav } from '@/components/transactions/MonthNav';
 import { NewTransactionDialog } from '@/components/transactions/NewTransactionDialog';
 import type { CategoryOption, TransactionListItem } from '@/components/transactions/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getBudgetAlerts, spentByCategory } from '@/lib/finance/budgets';
 import { expensesByCategory, summarizeMonth } from '@/lib/finance/summary';
 import { createClient } from '@/lib/supabase/server';
 import { formatMonthLabel, monthRange, parseMonthParam, toMonthParam } from '@/lib/utils/dates';
@@ -67,7 +69,7 @@ async function DashboardView({ searchParams }: Pick<PageProps<'/dashboard'>, 'se
 
   // One query for the month: totals, the donut and the latest movements all
   // come from it. RLS limits it to the user's rows.
-  const [transactionsResult, categoriesResult] = await Promise.all([
+  const [transactionsResult, categoriesResult, budgetsResult] = await Promise.all([
     supabase
       .from('transactions')
       .select(
@@ -78,12 +80,18 @@ async function DashboardView({ searchParams }: Pick<PageProps<'/dashboard'>, 'se
       .order('date', { ascending: false })
       .order('created_at', { ascending: false }),
     supabase.from('categories').select('id, name, icon, color, type').order('name'),
+    // Budgets of the month, for the 80 % / 100 % alerts.
+    supabase
+      .from('budgets')
+      .select('category_id, limit_amount, category:categories(name)')
+      .eq('month', start),
   ]);
 
-  if (transactionsResult.error || categoriesResult.error) {
+  if (transactionsResult.error || categoriesResult.error || budgetsResult.error) {
     console.error('dashboard query failed', {
       transactions: transactionsResult.error?.message,
       categories: categoriesResult.error?.message,
+      budgets: budgetsResult.error?.message,
     });
     return (
       <p role="alert" className="text-destructive">
@@ -123,11 +131,21 @@ async function DashboardView({ searchParams }: Pick<PageProps<'/dashboard'>, 'se
   // Totals are computed here, on the server, as integer pesos.
   const summary = summarizeMonth(transactions);
   const slices = expensesByCategory(transactions);
+  const spent = spentByCategory(transactions);
+  const alerts = getBudgetAlerts(
+    budgetsResult.data.map((budget) => ({
+      categoryId: budget.category_id,
+      categoryName: budget.category?.name ?? 'Sin categoría',
+      limitAmount: budget.limit_amount,
+      spent: spent.get(budget.category_id) ?? 0,
+    })),
+  );
 
   return (
     <>
       {nav}
       <SummaryCards summary={summary} />
+      <BudgetAlerts alerts={alerts} monthParam={monthParam} />
 
       <Card>
         <CardHeader>

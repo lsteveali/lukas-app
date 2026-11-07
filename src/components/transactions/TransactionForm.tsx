@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import type { BudgetAlertNotice } from '@/lib/finance/budgets';
 import { todayInBogota } from '@/lib/utils/dates';
 import { formatAmountInput, formatCOP, parseCOP } from '@/lib/utils/money';
 import {
@@ -33,8 +34,11 @@ type TransactionFormProps = {
   categories: CategoryOption[];
   /** When given, the form edits this transaction instead of creating one. */
   transaction?: TransactionListItem;
-  /** Called after a successful save with the saved date (YYYY-MM-DD). */
-  onSaved: (date: string) => void;
+  /**
+   * Called after a successful save with the saved date (YYYY-MM-DD) and, when
+   * the expense pushed its budget over 80 % or 100 %, the notice to show.
+   */
+  onSaved: (date: string, budgetAlert?: BudgetAlertNotice) => void;
   /** Extra actions under the submit button (e.g. "Eliminar" when editing). */
   footer?: React.ReactNode;
 };
@@ -86,7 +90,7 @@ export function TransactionForm({
         return;
       }
       if (!transaction) form.reset(emptyValues());
-      onSaved(values.date);
+      onSaved(values.date, result.budgetAlert);
     });
   });
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { useNotice } from '@/components/layout/Notice';
 import {
   Dialog,
   DialogContent,
@@ -10,10 +11,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import type { BudgetAlertNotice } from '@/lib/finance/budgets';
 import { formatMonthLabel, parseMonthParam } from '@/lib/utils/dates';
 
 import { DeleteTransactionButton } from './DeleteTransactionButton';
-import { useMovedNotice } from './MovedNotice';
 import { TransactionForm } from './TransactionForm';
 import type { CategoryOption, TransactionListItem } from './types';
 
@@ -36,16 +37,29 @@ export function EditTransactionDialog({
   children,
 }: EditTransactionDialogProps) {
   const [open, setOpen] = useState(false);
-  const showNotice = useMovedNotice();
+  const showNotice = useNotice();
 
-  const handleSaved = (date: string) => {
+  const handleSaved = (date: string, budgetAlert?: BudgetAlertNotice) => {
     setOpen(false);
     const savedMonth = date.slice(0, 7);
+    const moved = savedMonth !== currentMonth;
+    const monthLabel = formatMonthLabel(parseMonthParam(savedMonth));
+
+    // A budget crossing matters more: show it, and mention the move if any.
+    if (budgetAlert) {
+      showNotice({
+        tone: budgetAlert.level,
+        message: moved ? `${budgetAlert.message} Lo moviste a ${monthLabel}.` : budgetAlert.message,
+        href: budgetAlert.href,
+        linkLabel: 'Ver presupuestos',
+      });
+      return;
+    }
     // Stay on this month: revalidatePath already removed the row from it.
     // Tell the user where it went so it does not look deleted.
-    if (savedMonth !== currentMonth) {
-      const monthLabel = formatMonthLabel(parseMonthParam(savedMonth));
+    if (moved) {
       showNotice({
+        tone: 'info',
         message: `Movido a ${monthLabel}.`,
         href: `/transacciones?mes=${savedMonth}`,
         linkLabel: `Ver ${monthLabel}`,

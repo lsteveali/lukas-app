@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { FLOATING_ACTION_CLASS } from '@/components/layout/floating';
+import { useNotice } from '@/components/layout/Notice';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import type { BudgetAlertNotice } from '@/lib/finance/budgets';
 import { cn } from '@/lib/utils/cn';
 
 import { TransactionForm } from './TransactionForm';
@@ -40,9 +42,18 @@ export function NewTransactionDialog({
 }: NewTransactionDialogProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const showNotice = useNotice();
 
-  const handleSaved = (date: string) => {
+  const handleSaved = (date: string, budgetAlert?: BudgetAlertNotice) => {
     setOpen(false);
+    if (budgetAlert) {
+      showNotice({
+        tone: budgetAlert.level,
+        message: budgetAlert.message,
+        href: budgetAlert.href,
+        linkLabel: 'Ver presupuestos',
+      });
+    }
     const savedMonth = date.slice(0, 7);
     // The page already refreshed via revalidatePath; only move if the new
     // transaction belongs to another month.
