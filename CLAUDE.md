@@ -169,7 +169,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 - [ ] CRUD de transacciones (crear, listar con filtro por mes, editar, eliminar)
 - [ ] Dashboard: balance del mes (ingresos − gastos), gráfica de dona de gastos por categoría y últimos 5 movimientos
 - [ ] Utilidades `formatCOP` / `parseCOP` con tests
-- [ ] Workflow de CI (lint, typecheck, tests)
+- [x] Workflow de CI (lint, typecheck, tests)
 - [ ] README con descripción, stack, setup local y capturas
 
 ### v0.2: Metas y presupuestos
