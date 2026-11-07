@@ -158,7 +158,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 
 ### v0.1: MVP ← **EMPEZAR AQUÍ**
 - [x] Inicializar Next.js + TypeScript + Tailwind + ESLint + Prettier
-- [ ] Configurar shadcn/ui
+- [x] Configurar shadcn/ui
 - [ ] Configurar clientes de Supabase (`@supabase/ssr`) y middleware de sesión
 - [ ] Migración inicial: `profiles` (con trigger), `categories`, `transactions` + RLS
 - [ ] `seed.sql` con categorías predeterminadas:
