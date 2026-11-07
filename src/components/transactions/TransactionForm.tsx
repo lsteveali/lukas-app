@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useState, useTransition } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
-import { createTransaction } from '@/app/(app)/transacciones/actions';
+import { createTransaction, updateTransaction } from '@/app/(app)/transacciones/actions';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { todayInBogota } from '@/lib/utils/dates';
-import { formatCOP, parseCOP } from '@/lib/utils/money';
+import { formatAmountInput, formatCOP, parseCOP } from '@/lib/utils/money';
 import {
   DESCRIPTION_MAX,
   transactionSchema,
@@ -27,12 +27,16 @@ import {
 } from '@/lib/validations/transaction';
 
 import { CategoryIcon } from './CategoryIcon';
-import type { CategoryOption } from './types';
+import type { CategoryOption, TransactionListItem } from './types';
 
 type TransactionFormProps = {
   categories: CategoryOption[];
+  /** When given, the form edits this transaction instead of creating one. */
+  transaction?: TransactionListItem;
   /** Called after a successful save with the saved date (YYYY-MM-DD). */
   onSaved: (date: string) => void;
+  /** Extra actions under the submit button (e.g. "Eliminar" when editing). */
+  footer?: React.ReactNode;
 };
 
 const emptyValues = (): TransactionFormValues => ({
@@ -43,12 +47,26 @@ const emptyValues = (): TransactionFormValues => ({
   description: '',
 });
 
-export function TransactionForm({ categories, onSaved }: TransactionFormProps) {
+const valuesFrom = (transaction: TransactionListItem): TransactionFormValues => ({
+  type: transaction.type,
+  amount: formatAmountInput(transaction.amount),
+  categoryId: transaction.category_id ?? '',
+  date: transaction.date,
+  description: transaction.description ?? '',
+});
+
+export function TransactionForm({
+  categories,
+  transaction,
+  onSaved,
+  footer,
+}: TransactionFormProps) {
+  const isEditing = Boolean(transaction);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const form = useForm<TransactionFormValues, unknown, TransactionInput>({
     resolver: zodResolver(transactionSchema),
-    defaultValues: emptyValues(),
+    defaultValues: transaction ? valuesFrom(transaction) : emptyValues(),
   });
 
   const type = useWatch({ control: form.control, name: 'type' });
@@ -59,12 +77,15 @@ export function TransactionForm({ categories, onSaved }: TransactionFormProps) {
   const submit = form.handleSubmit((values) => {
     startTransition(async () => {
       // Send the raw form values: the Server Action validates them again.
-      const result = await createTransaction(form.getValues());
+      const raw = form.getValues();
+      const result = transaction
+        ? await updateTransaction(transaction.id, raw)
+        : await createTransaction(raw);
       if (!result.ok) {
         setServerError(result.error);
         return;
       }
-      form.reset(emptyValues());
+      if (!transaction) form.reset(emptyValues());
       onSaved(values.date);
     });
   });
@@ -200,8 +221,9 @@ export function TransactionForm({ categories, onSaved }: TransactionFormProps) {
 
         {/* Disabled while sending so a double tap cannot create duplicates. */}
         <Button type="submit" className="w-full" disabled={isPending}>
-          {isPending ? 'Guardando…' : 'Guardar movimiento'}
+          {isPending ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Guardar movimiento'}
         </Button>
+        {footer}
       </FieldGroup>
     </form>
   );

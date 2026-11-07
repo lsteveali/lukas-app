@@ -10,7 +10,7 @@ export type CategoryOption = Pick<
 
 export type TransactionListItem = Pick<
   Tables['transactions']['Row'],
-  'id' | 'amount' | 'date' | 'description'
+  'id' | 'amount' | 'date' | 'description' | 'category_id'
 > & {
   // The DB column is text with a check constraint; the page narrows it.
   type: TransactionType;
