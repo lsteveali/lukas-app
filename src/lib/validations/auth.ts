@@ -1,8 +1,16 @@
 import { z } from 'zod';
 
-// Supabase (bcrypt) ignores characters beyond 72 bytes, so cap it there.
+// Must match Supabase Auth → Password requirements: minimum 8 characters and
+// "letters and digits". Supabase (bcrypt) ignores characters beyond 72 bytes,
+// so cap it there.
 const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 72;
+// Same character sets Supabase checks for "letters and digits": ASCII only, so
+// "ñ" or "á" alone do not count as a letter there either.
+const HAS_LETTER = /[A-Za-z]/;
+const HAS_DIGIT = /[0-9]/;
+
+export const PASSWORD_HINT = `Mínimo ${PASSWORD_MIN} caracteres, con letras y números.`;
 
 const email = z
   .string()
@@ -27,7 +35,9 @@ export const registerSchema = z
     password: z
       .string()
       .min(PASSWORD_MIN, `La contraseña debe tener al menos ${PASSWORD_MIN} caracteres.`)
-      .max(PASSWORD_MAX, `La contraseña puede tener máximo ${PASSWORD_MAX} caracteres.`),
+      .max(PASSWORD_MAX, `La contraseña puede tener máximo ${PASSWORD_MAX} caracteres.`)
+      .regex(HAS_LETTER, 'La contraseña debe tener al menos una letra (a–z).')
+      .regex(HAS_DIGIT, 'La contraseña debe tener al menos un número.'),
     confirmPassword: z.string().min(1, 'Confirma tu contraseña.'),
   })
   .refine((data) => data.password === data.confirmPassword, {

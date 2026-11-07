@@ -8,9 +8,9 @@ import { Controller, useForm, type FieldPath } from 'react-hook-form';
 
 import { signUp } from '@/app/(auth)/actions';
 import { Button } from '@/components/ui/button';
-import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { registerSchema, type RegisterInput } from '@/lib/validations/auth';
+import { PASSWORD_HINT, registerSchema, type RegisterInput } from '@/lib/validations/auth';
 
 type TextField = {
   name: FieldPath<RegisterInput>;
@@ -18,6 +18,8 @@ type TextField = {
   type: 'text' | 'email' | 'password';
   autoComplete: string;
   placeholder?: string;
+  /** Shown under the field while it has no error. */
+  hint?: string;
 };
 
 const FIELDS: TextField[] = [
@@ -35,7 +37,13 @@ const FIELDS: TextField[] = [
     autoComplete: 'email',
     placeholder: 'tu@correo.com',
   },
-  { name: 'password', label: 'Contraseña', type: 'password', autoComplete: 'new-password' },
+  {
+    name: 'password',
+    label: 'Contraseña',
+    type: 'password',
+    autoComplete: 'new-password',
+    hint: PASSWORD_HINT,
+  },
   {
     name: 'confirmPassword',
     label: 'Confirma la contraseña',
@@ -85,7 +93,7 @@ export function RegisterForm() {
     // method="post" keeps the password out of the URL if submitted before hydration.
     <form method="post" onSubmit={onSubmit} noValidate>
       <FieldGroup>
-        {FIELDS.map(({ name, label, type, autoComplete, placeholder }) => (
+        {FIELDS.map(({ name, label, type, autoComplete, placeholder, hint }) => (
           <Controller
             key={name}
             name={name}
@@ -101,7 +109,11 @@ export function RegisterForm() {
                   placeholder={placeholder}
                   aria-invalid={fieldState.invalid}
                 />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                {fieldState.invalid ? (
+                  <FieldError errors={[fieldState.error]} />
+                ) : (
+                  hint && <FieldDescription>{hint}</FieldDescription>
+                )}
               </Field>
             )}
           />
