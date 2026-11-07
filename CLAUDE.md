@@ -249,6 +249,8 @@ Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 - Auth: la plantilla "Confirm signup" de Supabase apunta a `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` (ruta `/auth/confirm`). Las Redirect URLs deben terminar en `/**`.
 - Rutas protegidas por defecto: todo exige sesión salvo `/`, `/login`, `/registro` y `/auth/*` (`src/lib/auth/routes.ts`). Una ruta pública nueva se agrega ahí, con su test.
 - Toda redirección a un destino que venga de la URL (`next`) pasa por `safeNextPath`.
+- Fechas: usa `src/lib/utils/dates.ts` (`todayInBogota`, `parseMonthParam`, `monthRange`…). Nunca `new Date().toISOString().slice(0, 10)` ni la fecha local del servidor, que en Vercel es UTC. Las fechas `YYYY-MM-DD` se formatean en UTC para no correrse un día.
+- Al agregar componentes con el CLI de shadcn: quita el paquete `cn` que instala y cambia `from "cn"` por `@/lib/utils/cn`. Los textos para lectores de pantalla van en español.
 
 ---
 
