@@ -3,13 +3,18 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  # Also on main, so the README badge shows the state of the main branch.
+  push:
+    branches: [main]
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  # One group per PR (new pushes cancel the older run). Pushes to main get a
+  # group per commit and are never cancelled, so every merge is fully checked.
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   checks:
