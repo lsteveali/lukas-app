@@ -70,6 +70,10 @@ const validInput = {
 };
 
 const callsTo = (method: string) => mocks.calls.filter((call) => call.method === method);
+const expectMoneyPagesRevalidated = () => {
+  expect(mocks.revalidatePath).toHaveBeenCalledWith('/transacciones');
+  expect(mocks.revalidatePath).toHaveBeenCalledWith('/dashboard');
+};
 const touchedDb = () => mocks.calls.some((call) => call.method === 'from');
 
 beforeEach(() => {
@@ -91,7 +95,7 @@ describe('createTransaction', () => {
       date: '2026-11-07',
       description: 'Almuerzo',
     });
-    expect(mocks.revalidatePath).toHaveBeenCalledWith('/transacciones');
+    expectMoneyPagesRevalidated();
   });
 
   it('ignores a user_id sent from the client', async () => {
@@ -137,7 +141,7 @@ describe('updateTransaction', () => {
       ['user_id', SESSION_USER],
     ]);
     expect(callsTo('select')).toHaveLength(1);
-    expect(mocks.revalidatePath).toHaveBeenCalledWith('/transacciones');
+    expectMoneyPagesRevalidated();
   });
 
   it('never updates user_id, even if the client sends one', async () => {
@@ -189,7 +193,7 @@ describe('deleteTransaction', () => {
       ['user_id', SESSION_USER],
     ]);
     expect(callsTo('select')).toHaveLength(1);
-    expect(mocks.revalidatePath).toHaveBeenCalledWith('/transacciones');
+    expectMoneyPagesRevalidated();
   });
 
   it('reports "not found" when RLS lets 0 rows through (missing or not yours)', async () => {
