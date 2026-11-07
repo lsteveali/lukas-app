@@ -1,19 +1,30 @@
 import { ReceiptText } from 'lucide-react';
 
 import { formatShortDate } from '@/lib/utils/dates';
+import { formatCOP } from '@/lib/utils/money';
 
 import { CategoryIcon } from './CategoryIcon';
+import { EditTransactionDialog } from './EditTransactionDialog';
 import { TransactionAmount } from './TransactionAmount';
-import type { TransactionListItem } from './types';
+import type { CategoryOption, TransactionListItem } from './types';
 
 type TransactionListProps = {
   transactions: TransactionListItem[];
+  categories: CategoryOption[];
+  /** Month being viewed (YYYY-MM). */
+  currentMonth: string;
   monthLabel: string;
   /** Rendered in the empty state, e.g. the "new transaction" button. */
   emptyAction?: React.ReactNode;
 };
 
-export function TransactionList({ transactions, monthLabel, emptyAction }: TransactionListProps) {
+export function TransactionList({
+  transactions,
+  categories,
+  currentMonth,
+  monthLabel,
+  emptyAction,
+}: TransactionListProps) {
   if (transactions.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-4 py-12 text-center">
@@ -28,23 +39,34 @@ export function TransactionList({ transactions, monthLabel, emptyAction }: Trans
   }
 
   return (
-    <ul className="divide-y rounded-xl border">
+    <ul className="divide-y overflow-hidden rounded-xl border">
       {transactions.map((transaction) => {
         const title = transaction.category?.name ?? 'Sin categoría';
+        const date = formatShortDate(transaction.date);
+        const kind = transaction.type === 'expense' ? 'gasto' : 'ingreso';
+        const label = `Editar ${title}, ${date}, ${kind} de ${formatCOP(transaction.amount)}`;
         return (
-          <li key={transaction.id} className="flex items-center gap-3 p-3">
-            <CategoryIcon
-              icon={transaction.category?.icon ?? null}
-              color={transaction.category?.color ?? null}
-            />
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{title}</p>
-              <p className="truncate text-sm text-muted-foreground">
-                <time dateTime={transaction.date}>{formatShortDate(transaction.date)}</time>
-                {transaction.description && <> · {transaction.description}</>}
-              </p>
-            </div>
-            <TransactionAmount type={transaction.type} amount={transaction.amount} />
+          <li key={transaction.id}>
+            {/* The whole row opens the edit dialog: easy to tap on a phone. */}
+            <EditTransactionDialog
+              transaction={transaction}
+              categories={categories}
+              currentMonth={currentMonth}
+              label={label}
+            >
+              <CategoryIcon
+                icon={transaction.category?.icon ?? null}
+                color={transaction.category?.color ?? null}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{title}</span>
+                <span className="block truncate text-sm text-muted-foreground">
+                  <time dateTime={transaction.date}>{date}</time>
+                  {transaction.description && <> · {transaction.description}</>}
+                </span>
+              </span>
+              <TransactionAmount type={transaction.type} amount={transaction.amount} />
+            </EditTransactionDialog>
           </li>
         );
       })}

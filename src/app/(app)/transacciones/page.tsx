@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { MonthNav } from '@/components/transactions/MonthNav';
+import { MovedNoticeProvider } from '@/components/transactions/MovedNotice';
 import { NewTransactionDialog } from '@/components/transactions/NewTransactionDialog';
 import { TransactionList } from '@/components/transactions/TransactionList';
 import type { CategoryOption, TransactionListItem } from '@/components/transactions/types';
@@ -44,7 +45,9 @@ async function TransactionsView({
     supabase.from('categories').select('id, name, icon, color, type').order('name'),
     supabase
       .from('transactions')
-      .select('id, type, amount, date, description, category:categories(name, icon, color)')
+      .select(
+        'id, type, amount, date, description, category_id, category:categories(name, icon, color)',
+      )
       .gte('date', start)
       .lt('date', end)
       .order('date', { ascending: false })
@@ -76,11 +79,16 @@ async function TransactionsView({
       <div className="flex justify-end">
         <NewTransactionDialog categories={categories} currentMonth={monthParam} floating />
       </div>
-      <TransactionList
-        transactions={transactions}
-        monthLabel={monthLabel}
-        emptyAction={<NewTransactionDialog categories={categories} currentMonth={monthParam} />}
-      />
+      {/* Shows "Movido a …" when an edit moves a transaction to another month. */}
+      <MovedNoticeProvider>
+        <TransactionList
+          transactions={transactions}
+          categories={categories}
+          currentMonth={monthParam}
+          monthLabel={monthLabel}
+          emptyAction={<NewTransactionDialog categories={categories} currentMonth={monthParam} />}
+        />
+      </MovedNoticeProvider>
     </>
   );
 }
