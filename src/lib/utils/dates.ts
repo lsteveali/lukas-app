@@ -94,3 +94,16 @@ export function formatShortDate(isoDate: string): string {
   const [y, m, d] = isoDate.split('-').map(Number) as [number, number, number];
   return shortDateFormatter.format(new Date(Date.UTC(y, m - 1, d))).replace('.', '');
 }
+
+const longDateFormatter = new Intl.DateTimeFormat('es-CO', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+/** `"2026-12-31"` → `"31 de dic de 2026"` (short month, with year). */
+export function formatLongDate(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map(Number) as [number, number, number];
+  return longDateFormatter.format(new Date(Date.UTC(y, m - 1, d))).replace('.', '');
+}
