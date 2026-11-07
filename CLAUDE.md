@@ -139,11 +139,21 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 - Índice: `(user_id, date desc)`
 
 **goals** (v0.2)
-- `id`, `user_id`, `name text`, `target_amount bigint`, `current_amount bigint default 0`, `deadline date`, `created_at`
+- `id`, `user_id`, `name text` (1–60), `target_amount bigint check (> 0)`, `deadline date`, `created_at`
+- **Sin `current_amount`**: lo ahorrado es la suma de sus aportes. Único `(id, user_id)` para la FK compuesta de los aportes.
+
+**goal_contributions** (v0.2)
+- `id`, `goal_id`, `user_id`, `amount bigint check (amount <> 0)` (positivo = aporte, negativo = retiro), `date date` (por defecto hoy en Bogotá), `note text` (≤ 120), `created_at`
+- FK compuesta `(goal_id, user_id) → goals (id, user_id) on delete cascade`: un aporte solo puede ser de una meta del mismo usuario.
+- Trigger `check_goal_balance` (after insert/update/delete): bloquea la meta con `select … for update` y rechaza el cambio si la suma queda negativa (`23514`, mensaje `goal_balance_negative`). El `for update` necesita que `authenticated` tenga UPDATE en al menos una columna de `goals`.
+- Solo se pueden actualizar `amount`, `date` y `note`.
+
+**goals_with_progress** (vista, v0.2, `security_invoker = true`)
+- Columnas de `goals` + `saved_amount bigint` (suma de aportes). En los tipos generados sale `number | null`: usa `?? 0`.
 
 **budgets** (v0.2)
-- `id`, `user_id`, `category_id`, `limit_amount bigint`, `month date` (siempre el día 1 del mes)
-- Único: `(user_id, category_id, month)`
+- `id`, `user_id`, `category_id`, `limit_amount bigint check (> 0)`, `month date check (extract(day from month) = 1)`, `created_at`
+- Único: `(user_id, category_id, month)`. La categoría debe ser de gasto y visible para el usuario (igual que en `transactions`). Solo se puede actualizar `limit_amount`.
 
 ### Gastos compartidos (v0.3)
 
@@ -159,7 +169,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 
 ### Políticas RLS (resumen)
 
-- `profiles`, `transactions`, `goals`, `budgets`: el usuario solo puede leer y escribir filas donde `user_id = auth.uid()`.
+- `profiles`, `transactions`, `goals`, `goal_contributions`, `budgets`: el usuario solo puede leer y escribir filas donde `user_id = auth.uid()`.
 - `categories`: lectura de las filas con `user_id IS NULL` o `user_id = auth.uid()`; escritura solo de las propias.
 - Tablas de grupos: acceso solo si el usuario es miembro del grupo. Usa una función `is_group_member(group_id)` con `security definer` para evitar recursión en las políticas.
 
