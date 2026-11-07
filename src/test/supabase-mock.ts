@@ -14,7 +14,7 @@ export const supabaseMock = {
   user: null as { id: string } | null,
   error: null as DbError,
   /** Rows returned by `.select()` after update/delete (RLS may return none). */
-  affectedRows: [] as { id: string }[],
+  affectedRows: [] as { id: string; [column: string]: unknown }[],
   calls: [] as { method: string; args: unknown[] }[],
 };
 
