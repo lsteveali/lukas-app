@@ -19,6 +19,12 @@ const NOT_FOUND = 'No se encontró el movimiento.';
 
 const idSchema = z.uuid();
 
+/** Pages that show transactions or totals: refresh them after any change. */
+function revalidateMoneyPages() {
+  revalidatePath('/transacciones');
+  revalidatePath('/dashboard');
+}
+
 /** Signed-in user's id, from the session on the server (never the client). */
 async function getSessionUser() {
   const supabase = await createClient();
@@ -56,7 +62,7 @@ export async function createTransaction(input: unknown): Promise<TransactionActi
   });
   if (error) return failure('createTransaction', error);
 
-  revalidatePath('/transacciones');
+  revalidateMoneyPages();
   return { ok: true };
 }
 
@@ -85,7 +91,7 @@ export async function updateTransaction(
 
   // Re-renders the month being viewed: if the date moved to another month,
   // the row drops out of this month's list.
-  revalidatePath('/transacciones');
+  revalidateMoneyPages();
   return { ok: true };
 }
 
@@ -109,6 +115,6 @@ export async function deleteTransaction(id: unknown): Promise<TransactionActionR
   }
   if (!data || data.length === 0) return { ok: false, error: NOT_FOUND };
 
-  revalidatePath('/transacciones');
+  revalidateMoneyPages();
   return { ok: true };
 }

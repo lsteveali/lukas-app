@@ -24,12 +24,18 @@ type NewTransactionDialogProps = {
   currentMonth: string;
   /** Floating button on phones; a regular button inside the empty state. */
   floating?: boolean;
+  /** Text of the button that opens the dialog. */
+  triggerLabel?: string;
+  /** Page to show the saved month on, if it differs from the current one. */
+  basePath?: '/transacciones' | '/dashboard';
 };
 
 export function NewTransactionDialog({
   categories,
   currentMonth,
   floating = false,
+  triggerLabel = 'Nuevo movimiento',
+  basePath = '/transacciones',
 }: NewTransactionDialogProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -37,9 +43,9 @@ export function NewTransactionDialog({
   const handleSaved = (date: string) => {
     setOpen(false);
     const savedMonth = date.slice(0, 7);
-    // The list already refreshed via revalidatePath; only move if the new
+    // The page already refreshed via revalidatePath; only move if the new
     // transaction belongs to another month.
-    if (savedMonth !== currentMonth) router.push(`/transacciones?mes=${savedMonth}`);
+    if (savedMonth !== currentMonth) router.push(`${basePath}?mes=${savedMonth}`);
   };
 
   return (
@@ -49,11 +55,11 @@ export function NewTransactionDialog({
           size="lg"
           className={cn(
             floating &&
-              'fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 rounded-full shadow-lg sm:static sm:rounded-lg sm:shadow-none',
+              'fixed right-4 bottom-[calc(var(--bottom-nav-height)+1rem+env(safe-area-inset-bottom))] z-40 rounded-full shadow-lg sm:static sm:rounded-lg sm:shadow-none',
           )}
         >
           <Plus aria-hidden />
-          Nuevo movimiento
+          {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">

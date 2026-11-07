@@ -75,7 +75,8 @@ lukas-app/
 │   │   └── layout.tsx
 │   ├── components/
 │   │   ├── ui/                 # componentes de shadcn/ui
-│   │   └── ...                 # componentes propios por feature
+│   │   ├── layout/AppNav.tsx   # navegación de (app): header en escritorio, barra inferior en celular
+│   │   └── ...                 # componentes propios por feature (auth, transactions, dashboard)
 │   ├── lib/
 │   │   ├── supabase/
 │   │   │   ├── client.ts       # cliente de navegador
@@ -177,7 +178,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 - [x] Autenticación: correo y contraseña + Google OAuth; páginas de login y registro
 - [x] Protección de rutas con proxy (`src/proxy.ts`)
 - [x] CRUD de transacciones (crear, listar con filtro por mes, editar, eliminar)
-- [ ] Dashboard: balance del mes (ingresos − gastos), gráfica de dona de gastos por categoría y últimos 5 movimientos
+- [x] Dashboard: balance del mes (ingresos − gastos), gráfica de dona de gastos por categoría y últimos 5 movimientos
 - [x] Utilidades `formatCOP` / `parseCOP` con tests
 - [x] Workflow de CI (lint, typecheck, tests)
 - [ ] README con descripción, stack, setup local y capturas
@@ -251,6 +252,9 @@ Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 - Toda redirección a un destino que venga de la URL (`next`) pasa por `safeNextPath`.
 - Fechas: usa `src/lib/utils/dates.ts` (`todayInBogota`, `parseMonthParam`, `monthRange`…). Nunca `new Date().toISOString().slice(0, 10)` ni la fecha local del servidor, que en Vercel es UTC. Las fechas `YYYY-MM-DD` se formatean en UTC para no correrse un día.
 - `update`/`delete` en Server Actions: con RLS, una fila ajena o inexistente no da error, solo afecta 0 filas. Encadena `.eq('user_id', userId).select('id')` y, si `data` llega vacío, devuelve "No se encontró…". Cada acción nueva lleva un test de ese caso.
+- Toda mutación de transacciones revalida `/transacciones` y `/dashboard` (`revalidateMoneyPages` en `transacciones/actions.ts`). Si una página nueva muestra movimientos o totales, agrégala ahí.
+- Totales y agrupaciones de dinero se calculan en el servidor con funciones puras y testeadas (`src/lib/finance/summary.ts`), siempre en enteros.
+- La barra inferior del celular mide `--bottom-nav-height` (`globals.css`). Todo lo fijo abajo (botones flotantes) se desplaza con esa variable.
 - Al agregar componentes con el CLI de shadcn: quita el paquete `cn` que instala y cambia `from "cn"` por `@/lib/utils/cn`. Los textos para lectores de pantalla van en español.
 
 ---
