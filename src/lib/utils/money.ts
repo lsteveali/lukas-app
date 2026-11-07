@@ -19,6 +19,24 @@ export function formatCOP(amount: number): string {
   return copFormatter.format(amount);
 }
 
+// Thousands dots only, no currency sign. useGrouping 'always' keeps "1.000"
+// grouped even in locales that skip grouping for four-digit numbers.
+const amountInputFormatter = new Intl.NumberFormat('es-CO', {
+  maximumFractionDigits: 0,
+  useGrouping: 'always',
+});
+
+/**
+ * Formats an amount for an editable input: 15000 → "15.000" (no "$").
+ * parseCOP reads it back, so it round-trips through the form.
+ */
+export function formatAmountInput(amount: number): string {
+  if (!Number.isSafeInteger(amount)) {
+    throw new RangeError(`formatAmountInput expects a safe integer, got ${amount}`);
+  }
+  return amountInputFormatter.format(amount);
+}
+
 // Either plain digits ("15000") or digits grouped by dots every three ("15.000").
 const PLAIN_OR_GROUPED = /^(?:\d+|\d{1,3}(?:\.\d{3})+)$/;
 // Leading "$" plus any spaces, including the non-breaking ones Intl outputs.

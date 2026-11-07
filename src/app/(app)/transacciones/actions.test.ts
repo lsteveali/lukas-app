@@ -3,29 +3,63 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const SESSION_USER = '0b7f2c4e-9a1d-4e3b-8f6a-2c5d7e9f1a3b';
 const OTHER_USER = '5e8a1b3c-7d2f-4a6e-9b1c-3d5f7a9b2c4e';
 const CATEGORY_ID = '3f2b8c1e-5d4a-4b6f-9c2e-1a7d8e9f0b12';
+const TRANSACTION_ID = '9c1d3e5f-7a2b-4c6d-8e1f-2a4b6c8d0e1f';
 
+type DbError = { code: string; message: string } | null;
+
+/**
+ * Minimal stand-in for the supabase-js query builder. Records every call so
+ * tests can assert the filters, and returns the configured result.
+ */
 const mocks = vi.hoisted(() => ({
   user: null as { id: string } | null,
-  insertError: null as { code: string; message: string } | null,
-  insert: vi.fn(),
+  error: null as { code: string; message: string } | null,
+  /** Rows returned by `.select()` after update/delete (RLS may return none). */
+  affectedRows: [] as { id: string }[],
+  calls: [] as { method: string; args: unknown[] }[],
   revalidatePath: vi.fn(),
 }));
 
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
 
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: async () => ({
-    auth: { getUser: async () => ({ data: { user: mocks.user }, error: null }) },
-    from: () => ({
-      insert: async (row: unknown) => {
-        mocks.insert(row);
-        return { error: mocks.insertError };
+vi.mock('@/lib/supabase/server', () => {
+  const builder = () => {
+    const record =
+      (method: string) =>
+      (...args: unknown[]) => {
+        mocks.calls.push({ method, args });
+        return chain;
+      };
+    const chain = {
+      update: record('update'),
+      delete: record('delete'),
+      eq: record('eq'),
+      select: (...args: unknown[]) => {
+        mocks.calls.push({ method: 'select', args });
+        return Promise.resolve({
+          data: mocks.error ? null : mocks.affectedRows,
+          error: mocks.error,
+        });
+      },
+      insert: (row: unknown) => {
+        mocks.calls.push({ method: 'insert', args: [row] });
+        return Promise.resolve({ error: mocks.error as DbError });
+      },
+    };
+    return chain;
+  };
+  return {
+    createClient: async () => ({
+      auth: { getUser: async () => ({ data: { user: mocks.user }, error: null }) },
+      from: (table: string) => {
+        mocks.calls.push({ method: 'from', args: [table] });
+        return builder();
       },
     }),
-  }),
-}));
+  };
+});
 
-const { createTransaction } = await import('./actions');
+const { createTransaction, deleteTransaction, updateTransaction } = await import('./actions');
 
 const validInput = {
   type: 'expense',
@@ -35,18 +69,21 @@ const validInput = {
   description: 'Almuerzo',
 };
 
+const callsTo = (method: string) => mocks.calls.filter((call) => call.method === method);
+const touchedDb = () => mocks.calls.some((call) => call.method === 'from');
+
 beforeEach(() => {
   mocks.user = { id: SESSION_USER };
-  mocks.insertError = null;
-  mocks.insert.mockClear();
+  mocks.error = null;
+  mocks.affectedRows = [{ id: TRANSACTION_ID }];
+  mocks.calls = [];
   mocks.revalidatePath.mockClear();
 });
 
 describe('createTransaction', () => {
   it('inserts with the session user and the parsed amount', async () => {
-    const result = await createTransaction(validInput);
-    expect(result).toEqual({ ok: true });
-    expect(mocks.insert).toHaveBeenCalledWith({
+    expect(await createTransaction(validInput)).toEqual({ ok: true });
+    expect(callsTo('insert')[0]?.args[0]).toEqual({
       user_id: SESSION_USER,
       type: 'expense',
       amount: 15000,
@@ -59,29 +96,130 @@ describe('createTransaction', () => {
 
   it('ignores a user_id sent from the client', async () => {
     await createTransaction({ ...validInput, user_id: OTHER_USER, userId: OTHER_USER });
-    expect(mocks.insert).toHaveBeenCalledWith(expect.objectContaining({ user_id: SESSION_USER }));
+    expect(callsTo('insert')[0]?.args[0]).toMatchObject({ user_id: SESSION_USER });
   });
 
   it('does not insert invalid data', async () => {
     const result = await createTransaction({ ...validInput, amount: '0' });
     expect(result).toEqual({ ok: false, error: 'Revisa los datos del formulario.' });
-    expect(mocks.insert).not.toHaveBeenCalled();
+    expect(touchedDb()).toBe(false);
   });
 
   it('does not insert without a session', async () => {
     mocks.user = null;
     const result = await createTransaction(validInput);
     expect(result).toEqual({ ok: false, error: 'Tu sesión expiró. Inicia sesión de nuevo.' });
-    expect(mocks.insert).not.toHaveBeenCalled();
+    expect(touchedDb()).toBe(false);
   });
 
   it('explains an RLS rejection as an invalid category', async () => {
-    mocks.insertError = { code: '42501', message: 'new row violates row-level security policy' };
-    const result = await createTransaction(validInput);
-    expect(result).toEqual({
+    mocks.error = { code: '42501', message: 'new row violates row-level security policy' };
+    expect(await createTransaction(validInput)).toEqual({
       ok: false,
       error: 'La categoría no es válida para este tipo de movimiento.',
     });
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe('updateTransaction', () => {
+  it('updates the row scoped to the session user and checks the result', async () => {
+    expect(await updateTransaction(TRANSACTION_ID, validInput)).toEqual({ ok: true });
+    expect(callsTo('update')[0]?.args[0]).toEqual({
+      type: 'expense',
+      amount: 15000,
+      category_id: CATEGORY_ID,
+      date: '2026-11-07',
+      description: 'Almuerzo',
+    });
+    expect(callsTo('eq').map((call) => call.args)).toEqual([
+      ['id', TRANSACTION_ID],
+      ['user_id', SESSION_USER],
+    ]);
+    expect(callsTo('select')).toHaveLength(1);
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/transacciones');
+  });
+
+  it('never updates user_id, even if the client sends one', async () => {
+    await updateTransaction(TRANSACTION_ID, { ...validInput, user_id: OTHER_USER });
+    expect(callsTo('update')[0]?.args[0]).not.toHaveProperty('user_id');
+  });
+
+  it('reports "not found" when RLS lets 0 rows through (missing or not yours)', async () => {
+    mocks.affectedRows = [];
+    expect(await updateTransaction(TRANSACTION_ID, validInput)).toEqual({
+      ok: false,
+      error: 'No se encontró el movimiento.',
+    });
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid id or invalid data without touching the database', async () => {
+    expect(await updateTransaction('not-a-uuid', validInput)).toMatchObject({ ok: false });
+    expect(await updateTransaction(TRANSACTION_ID, { ...validInput, amount: '' })).toMatchObject({
+      ok: false,
+    });
+    expect(touchedDb()).toBe(false);
+  });
+
+  it('requires a session', async () => {
+    mocks.user = null;
+    expect(await updateTransaction(TRANSACTION_ID, validInput)).toEqual({
+      ok: false,
+      error: 'Tu sesión expiró. Inicia sesión de nuevo.',
+    });
+    expect(touchedDb()).toBe(false);
+  });
+
+  it('explains an RLS rejection as an invalid category', async () => {
+    mocks.error = { code: '42501', message: 'new row violates row-level security policy' };
+    expect(await updateTransaction(TRANSACTION_ID, validInput)).toEqual({
+      ok: false,
+      error: 'La categoría no es válida para este tipo de movimiento.',
+    });
+  });
+});
+
+describe('deleteTransaction', () => {
+  it('deletes the row scoped to the session user and checks the result', async () => {
+    expect(await deleteTransaction(TRANSACTION_ID)).toEqual({ ok: true });
+    expect(callsTo('delete')).toHaveLength(1);
+    expect(callsTo('eq').map((call) => call.args)).toEqual([
+      ['id', TRANSACTION_ID],
+      ['user_id', SESSION_USER],
+    ]);
+    expect(callsTo('select')).toHaveLength(1);
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/transacciones');
+  });
+
+  it('reports "not found" when RLS lets 0 rows through (missing or not yours)', async () => {
+    mocks.affectedRows = [];
+    expect(await deleteTransaction(TRANSACTION_ID)).toEqual({
+      ok: false,
+      error: 'No se encontró el movimiento.',
+    });
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('treats an invalid id as not found without touching the database', async () => {
+    expect(await deleteTransaction('../etc')).toEqual({
+      ok: false,
+      error: 'No se encontró el movimiento.',
+    });
+    expect(touchedDb()).toBe(false);
+  });
+
+  it('requires a session', async () => {
+    mocks.user = null;
+    expect(await deleteTransaction(TRANSACTION_ID)).toMatchObject({ ok: false });
+    expect(touchedDb()).toBe(false);
+  });
+
+  it('returns a generic message on database errors', async () => {
+    mocks.error = { code: '57014', message: 'canceling statement due to statement timeout' };
+    expect(await deleteTransaction(TRANSACTION_ID)).toEqual({
+      ok: false,
+      error: 'No pudimos eliminar el movimiento. Intenta de nuevo.',
+    });
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatCOP, parseCOP } from './money';
+import { formatAmountInput, formatCOP, parseCOP } from './money';
 
 // Intl puts a non-breaking space (U+00A0) between "$" and the number.
 const NBSP = ' ';
@@ -69,4 +69,24 @@ describe('parseCOP', () => {
       expect(parseCOP(formatCOP(amount))).toBe(amount);
     },
   );
+});
+
+describe('formatAmountInput', () => {
+  it.each([
+    [0, '0'],
+    [500, '500'],
+    [1000, '1.000'],
+    [15000, '15.000'],
+    [1234567, '1.234.567'],
+  ])('formats %d as %j without the currency sign', (amount, expected) => {
+    expect(formatAmountInput(amount)).toBe(expected);
+  });
+
+  it.each([1, 999, 1000, 15000, 1_000_000_000])('round-trips %d through parseCOP', (amount) => {
+    expect(parseCOP(formatAmountInput(amount))).toBe(amount);
+  });
+
+  it('throws for non-integers', () => {
+    expect(() => formatAmountInput(10.5)).toThrow(RangeError);
+  });
 });
