@@ -17,7 +17,7 @@ Es un proyecto personal, desarrollado por una sola persona y gestionado en GitHu
 
 - **Código en inglés:** variables, funciones, componentes, tablas, columnas, commits y nombres de ramas.
 - **Interfaz en español (Colombia):** todos los textos visibles para el usuario.
-- **Moneda:** pesos colombianos (COP). Se formatean con `Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })` → `$ 15.000`.
+- **Moneda:** pesos colombianos (COP). Se formatean con `Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })` → `$ 15.000`. Usa siempre `formatCOP` / `parseCOP` de `src/lib/utils/money.ts`: el espacio tras `$` es un NBSP (U+00A0), así que en tests compara contra `formatCOP(...)` o usa ` `; `formatCOP` lanza `RangeError` con montos no enteros y `parseCOP` devuelve `null` si la entrada es ambigua.
 - **Fechas:** formato `es-CO`, zona horaria `America/Bogota`.
 
 ---
@@ -178,7 +178,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 - [x] Protección de rutas con proxy (`src/proxy.ts`)
 - [ ] CRUD de transacciones (crear, listar con filtro por mes, editar, eliminar)
 - [ ] Dashboard: balance del mes (ingresos − gastos), gráfica de dona de gastos por categoría y últimos 5 movimientos
-- [ ] Utilidades `formatCOP` / `parseCOP` con tests
+- [x] Utilidades `formatCOP` / `parseCOP` con tests
 - [x] Workflow de CI (lint, typecheck, tests)
 - [ ] README con descripción, stack, setup local y capturas
 
