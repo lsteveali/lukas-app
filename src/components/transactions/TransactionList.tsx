@@ -3,9 +3,8 @@ import { ReceiptText } from 'lucide-react';
 import { formatShortDate } from '@/lib/utils/dates';
 import { formatCOP } from '@/lib/utils/money';
 
-import { CategoryIcon } from './CategoryIcon';
 import { EditTransactionDialog } from './EditTransactionDialog';
-import { TransactionAmount } from './TransactionAmount';
+import { TransactionRowContent } from './TransactionRowContent';
 import type { CategoryOption, TransactionListItem } from './types';
 
 type TransactionListProps = {
@@ -54,18 +53,7 @@ export function TransactionList({
               currentMonth={currentMonth}
               label={label}
             >
-              <CategoryIcon
-                icon={transaction.category?.icon ?? null}
-                color={transaction.category?.color ?? null}
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{title}</span>
-                <span className="block truncate text-sm text-muted-foreground">
-                  <time dateTime={transaction.date}>{date}</time>
-                  {transaction.description && <> · {transaction.description}</>}
-                </span>
-              </span>
-              <TransactionAmount type={transaction.type} amount={transaction.amount} />
+              <TransactionRowContent transaction={transaction} />
             </EditTransactionDialog>
           </li>
         );

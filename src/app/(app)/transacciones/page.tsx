@@ -75,7 +75,7 @@ async function TransactionsView({
 
   return (
     <>
-      <MonthNav month={month} />
+      <MonthNav month={month} basePath="/transacciones" />
       <div className="flex justify-end">
         <NewTransactionDialog categories={categories} currentMonth={monthParam} floating />
       </div>
