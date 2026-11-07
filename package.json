@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:types": "npx --yes supabase@3.0.0 gen types typescript --remote --schema public > src/types/database.ts",
+    "db:push": "npx --yes supabase@3.0.0 db push --remote"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.3",

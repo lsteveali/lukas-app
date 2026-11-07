@@ -49,6 +49,7 @@ Antes de agregar una dependencia que no esté en esta lista, pregunta.
 4. **La `service_role` key de Supabase nunca se usa en el cliente** ni en código que llegue al navegador.
 5. **Valida en el servidor.** Toda entrada pasa por un esquema zod en Server Actions o Route Handlers, aunque también se valide en el formulario.
 6. **El esquema de BD solo cambia mediante migraciones** en `supabase/migrations/`. Nada de cambios manuales en el dashboard.
+7. **Los datos que deben existir en producción van en migraciones, no en `seed.sql`.** `supabase db push` no aplica `seed.sql` al remoto; ese archivo solo corre en local (`supabase db reset`) y sirve únicamente para datos de prueba.
 
 ---
 
@@ -88,7 +89,8 @@ lukas-app/
 │   └── proxy.ts                # Next 16 (antes middleware.ts): sesión y protección de rutas
 ├── supabase/
 │   ├── migrations/
-│   └── seed.sql
+│   ├── config.toml
+│   └── seed.sql                # solo datos de prueba locales (no llega al remoto)
 ├── .env.example
 ├── CLAUDE.md
 └── README.md
@@ -161,8 +163,8 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 - [x] Inicializar Next.js + TypeScript + Tailwind + ESLint + Prettier
 - [x] Configurar shadcn/ui
 - [x] Configurar clientes de Supabase (`@supabase/ssr`) y proxy de sesión
-- [ ] Migración inicial: `profiles` (con trigger), `categories`, `transactions` + RLS
-- [ ] `seed.sql` con categorías predeterminadas:
+- [x] Migración inicial: `profiles` (con trigger), `categories`, `transactions` + RLS
+- [ ] Categorías predeterminadas en una **migración nueva** (no en `seed.sql`, que `db push` no aplica al remoto):
   - Gastos: Comida, Transporte, Universidad, Hogar, Servicios, Salud, Entretenimiento, Ropa, Otros
   - Ingresos: Salario, Mesada, Freelance, Otros
 - [ ] Autenticación: correo y contraseña + Google OAuth; páginas de login y registro
@@ -216,8 +218,11 @@ npm run build        # build de producción
 npm run lint         # ESLint
 npm run typecheck    # tsc --noEmit
 npm run test         # Vitest
-npx supabase gen types typescript --project-id <id> > src/types/database.ts
+npm run db:types     # regenera src/types/database.ts desde el proyecto vinculado
+npm run db:push      # aplica las migraciones pendientes al proyecto vinculado (producción)
 ```
+
+Los scripts usan el CLI de Supabase v3 vía `npx supabase@3.0.0` (no es dependencia del proyecto). Requieren `npx supabase login` y `npx supabase link` una vez por máquina. Sin Docker no hay stack local: prueba las migraciones antes de hacer `db:push`.
 
 Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 
