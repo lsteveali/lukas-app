@@ -181,7 +181,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 - [x] Dashboard: balance del mes (ingresos − gastos), gráfica de dona de gastos por categoría y últimos 5 movimientos
 - [x] Utilidades `formatCOP` / `parseCOP` con tests
 - [x] Workflow de CI (lint, typecheck, tests)
-- [ ] README con descripción, stack, setup local y capturas
+- [x] README con descripción, stack, setup local y capturas
 
 ### v0.2: Metas y presupuestos
 - Metas de ahorro con barra de progreso y aportes
