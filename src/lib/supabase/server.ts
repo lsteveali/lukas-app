@@ -10,8 +10,10 @@ import { getSupabaseEnv } from './env';
  * Create a new client per request; never share one between requests.
  */
 export async function createClient() {
-  const { url, publishableKey } = getSupabaseEnv();
+  // Read cookies first: it marks the render as request-time, so prerendering
+  // at build time stops here instead of failing on missing env vars.
   const cookieStore = await cookies();
+  const { url, publishableKey } = getSupabaseEnv();
 
   return createServerClient<Database>(url, publishableKey, {
     cookies: {
