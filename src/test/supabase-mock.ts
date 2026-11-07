@@ -4,17 +4,21 @@
  *   vi.mock('@/lib/supabase/server', () => import('@/test/supabase-mock'));
  *   import { supabaseMock, resetSupabaseMock } from '@/test/supabase-mock';
  *
- * It records every query-builder call so tests can assert filters, and returns
- * whatever `supabaseMock` is configured with.
+ * Every query-builder call is recorded so tests can assert filters. Awaiting a
+ * query resolves to the next entry of `supabaseMock.results` if any was
+ * queued, otherwise to `{ data: affectedRows, error }`.
  */
 
 type DbError = { code: string; message: string } | null;
+type QueryResult = { data: unknown; error: DbError };
 
 export const supabaseMock = {
   user: null as { id: string } | null,
   error: null as DbError,
-  /** Rows returned by `.select()` after update/delete (RLS may return none). */
+  /** Default rows for any awaited query (e.g. `.select()` after update/delete). */
   affectedRows: [] as { id: string; [column: string]: unknown }[],
+  /** Per-query results, consumed in order (for actions that run several queries). */
+  results: [] as QueryResult[],
   calls: [] as { method: string; args: unknown[] }[],
 };
 
@@ -22,6 +26,7 @@ export function resetSupabaseMock(userId: string | null) {
   supabaseMock.user = userId ? { id: userId } : null;
   supabaseMock.error = null;
   supabaseMock.affectedRows = [];
+  supabaseMock.results = [];
   supabaseMock.calls = [];
 }
 
@@ -30,29 +35,39 @@ export const callsTo = (method: string) =>
 
 export const touchedDb = () => supabaseMock.calls.some((call) => call.method === 'from');
 
+function nextResult(): QueryResult {
+  const queued = supabaseMock.results.shift();
+  if (queued) return queued;
+  return {
+    data: supabaseMock.error ? null : supabaseMock.affectedRows,
+    error: supabaseMock.error,
+  };
+}
+
+const CHAIN_METHODS = [
+  'select',
+  'insert',
+  'upsert',
+  'update',
+  'delete',
+  'eq',
+  'gte',
+  'lt',
+  'order',
+];
+
+/** Chainable, awaitable stand-in for the supabase-js query builder. */
 function builder() {
-  const record =
-    (method: string) =>
-    (...args: unknown[]) => {
+  const chain: Record<string, unknown> = {};
+  for (const method of CHAIN_METHODS) {
+    chain[method] = (...args: unknown[]) => {
       supabaseMock.calls.push({ method, args });
       return chain;
     };
-  const chain = {
-    update: record('update'),
-    delete: record('delete'),
-    eq: record('eq'),
-    select: (...args: unknown[]) => {
-      supabaseMock.calls.push({ method: 'select', args });
-      return Promise.resolve({
-        data: supabaseMock.error ? null : supabaseMock.affectedRows,
-        error: supabaseMock.error,
-      });
-    },
-    insert: (row: unknown) => {
-      supabaseMock.calls.push({ method: 'insert', args: [row] });
-      return Promise.resolve({ error: supabaseMock.error });
-    },
-  };
+  }
+  // Awaiting the chain runs the "query".
+  chain.then = (resolve: (value: QueryResult) => unknown, reject?: (reason: unknown) => unknown) =>
+    Promise.resolve(nextResult()).then(resolve, reject);
   return chain;
 }
 
