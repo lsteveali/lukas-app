@@ -114,7 +114,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 - `id uuid PK default gen_random_uuid()`
 - `user_id uuid FK → profiles.id` (nullable: `NULL` = categoría predeterminada del sistema)
 - `name text not null`
-- `icon text` (nombre de icono de lucide-react)
+- `icon text` (nombre de icono de lucide-react en kebab-case, p. ej. `graduation-cap`; se usa con `<DynamicIcon name>`)
 - `color text` (hex)
 - `type text check (type in ('expense','income'))`
 - `created_at timestamptz default now()`
@@ -164,7 +164,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 - [x] Configurar shadcn/ui
 - [x] Configurar clientes de Supabase (`@supabase/ssr`) y proxy de sesión
 - [x] Migración inicial: `profiles` (con trigger), `categories`, `transactions` + RLS
-- [ ] Categorías predeterminadas en una **migración nueva** (no en `seed.sql`, que `db push` no aplica al remoto):
+- [x] Categorías predeterminadas en una **migración nueva** (no en `seed.sql`, que `db push` no aplica al remoto):
   - Gastos: Comida, Transporte, Universidad, Hogar, Servicios, Salud, Entretenimiento, Ropa, Otros
   - Ingresos: Salario, Mesada, Freelance, Otros
 - [ ] Autenticación: correo y contraseña + Google OAuth; páginas de login y registro
