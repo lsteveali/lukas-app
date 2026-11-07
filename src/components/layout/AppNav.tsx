@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutDashboard, PiggyBank, ReceiptText, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, PiggyBank, ReceiptText, Wallet, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Suspense } from 'react';
@@ -13,6 +13,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Inicio', icon: LayoutDashboard },
   { href: '/transacciones', label: 'Movimientos', icon: ReceiptText },
   { href: '/metas', label: 'Metas', icon: PiggyBank },
+  { href: '/presupuestos', label: 'Presupuestos', icon: Wallet },
 ];
 
 function isActive(pathname: string | null, href: string) {
@@ -102,7 +103,7 @@ export function AppNav({ userMenu }: { userMenu: React.ReactNode }) {
         aria-label="Principal"
         className="fixed inset-x-0 bottom-0 z-30 border-t bg-background pb-[env(safe-area-inset-bottom)] sm:hidden"
       >
-        <ul className="grid h-(--bottom-nav-height) grid-cols-3">
+        <ul className="grid h-(--bottom-nav-height) grid-cols-4">
           <Links variant="bottom" />
         </ul>
       </nav>

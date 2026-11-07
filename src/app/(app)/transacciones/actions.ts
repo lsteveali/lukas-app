@@ -23,6 +23,8 @@ const idSchema = z.uuid();
 function revalidateMoneyPages() {
   revalidatePath('/transacciones');
   revalidatePath('/dashboard');
+  // Budgets show what was spent per category this month.
+  revalidatePath('/presupuestos');
 }
 
 /** Signed-in user's id, from the session on the server (never the client). */

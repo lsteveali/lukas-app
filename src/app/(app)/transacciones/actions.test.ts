@@ -25,6 +25,7 @@ const validInput = {
 const expectMoneyPagesRevalidated = () => {
   expect(mocks.revalidatePath).toHaveBeenCalledWith('/transacciones');
   expect(mocks.revalidatePath).toHaveBeenCalledWith('/dashboard');
+  expect(mocks.revalidatePath).toHaveBeenCalledWith('/presupuestos');
 };
 
 beforeEach(() => {

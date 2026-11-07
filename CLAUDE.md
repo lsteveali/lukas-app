@@ -262,12 +262,13 @@ Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 - Toda redirección a un destino que venga de la URL (`next`) pasa por `safeNextPath`.
 - Fechas: usa `src/lib/utils/dates.ts` (`todayInBogota`, `parseMonthParam`, `monthRange`…). Nunca `new Date().toISOString().slice(0, 10)` ni la fecha local del servidor, que en Vercel es UTC. Las fechas `YYYY-MM-DD` se formatean en UTC para no correrse un día.
 - `update`/`delete` en Server Actions: con RLS, una fila ajena o inexistente no da error, solo afecta 0 filas. Encadena `.eq('user_id', userId).select('id')` y, si `data` llega vacío, devuelve "No se encontró…". Cada acción nueva lleva un test de ese caso.
-- Toda mutación de transacciones revalida `/transacciones` y `/dashboard` (`revalidateMoneyPages` en `transacciones/actions.ts`). Si una página nueva muestra movimientos o totales, agrégala ahí.
-- Totales y agrupaciones de dinero se calculan en el servidor con funciones puras y testeadas (`src/lib/finance/summary.ts`), siempre en enteros.
+- Toda mutación de transacciones revalida `/transacciones`, `/dashboard` y `/presupuestos` (`revalidateMoneyPages` en `transacciones/actions.ts`). Si una página nueva muestra movimientos o totales, agrégala ahí.
+- Totales y agrupaciones de dinero se calculan en el servidor con funciones puras y testeadas (`src/lib/finance/`), siempre en enteros.
+- Presupuestos: los umbrales 80 % / 100 % viven en `src/lib/finance/budgets.ts` (`getBudgetUsage`, `WARNING_PERCENT`, `EXCEEDED_PERCENT`). La página y las alertas del dashboard (#29) los usan, no los repitas.
 - La barra inferior del celular mide `--bottom-nav-height` (`globals.css`). Todo lo fijo abajo (botones flotantes) se desplaza con esa variable: usa `FLOATING_ACTION_CLASS` (`components/layout/floating.ts`) y envuelve el botón en `contents sm:flex` para que su contenedor no deje un hueco en el celular.
-- Navegación: `NAV_ITEMS` en `AppNav.tsx` alimenta el header (escritorio) y la barra inferior (celular): Inicio, Movimientos, Metas (y Presupuestos en el #28). "Cerrar sesión" vive en el menú del avatar (`UserMenu`), en el header de todos los tamaños.
+- Navegación: `NAV_ITEMS` en `AppNav.tsx` alimenta el header (escritorio) y la barra inferior (celular): Inicio, Movimientos, Metas y Presupuestos (la barra inferior tiene 4 columnas; revisa que quepa a 375 px si agregas otra). "Cerrar sesión" vive en el menú del avatar (`UserMenu`), en el header de todos los tamaños.
 - Campos de dinero en zod: usa `positiveAmount` de `src/lib/validations/money.ts` (mismo `parseCOP`, tope y mensajes en toda la app).
-- Tests de Server Actions: `vi.mock('@/lib/supabase/server', () => import('@/test/supabase-mock'))` y los helpers `supabaseMock`, `resetSupabaseMock`, `callsTo`, `touchedDb`.
+- Tests de Server Actions: `vi.mock('@/lib/supabase/server', () => import('@/test/supabase-mock'))` y los helpers `supabaseMock`, `resetSupabaseMock`, `callsTo`, `touchedDb`. Si la acción hace varias consultas, encola un resultado por consulta en `supabaseMock.results`.
 - Las vistas de Supabase se tipan con todas las columnas `| null`: normaliza cada fila con una función testeada (p. ej. `toGoal`) en vez de usar `!`.
 - Un archivo `'use server'` solo exporta funciones async (y tipos). Las constantes compartidas (mensajes, etc.) van en `src/lib/`; si no, el build falla aunque los tests pasen.
 - `usePathname()`/`useSearchParams()` en componentes del layout cuentan como datos de la URL en rutas dinámicas (`/metas/[id]`): van dentro de `<Suspense>` con un fallback (ver `AppNav`).
