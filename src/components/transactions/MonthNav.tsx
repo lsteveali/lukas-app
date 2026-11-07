@@ -7,7 +7,7 @@ import { formatMonthLabel, shiftMonth, toMonthParam, type YearMonth } from '@/li
 type MonthNavProps = {
   month: YearMonth;
   /** Page the links point to, e.g. "/transacciones" or "/dashboard". */
-  basePath: '/transacciones' | '/dashboard';
+  basePath: '/transacciones' | '/dashboard' | '/presupuestos';
 };
 
 /** Previous/next month links. Plain links keep the month in the URL. */
