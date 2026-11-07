@@ -69,7 +69,9 @@ lukas-app/
 │   │   │   ├── transacciones/
 │   │   │   ├── metas/          # v0.2
 │   │   │   └── grupos/         # v0.3
-│   │   ├── auth/callback/      # callback de OAuth
+│   │   ├── auth/
+│   │   │   ├── callback/       # OAuth (Google): exchangeCodeForSession
+│   │   │   └── confirm/        # confirmación de correo: verifyOtp con token_hash
 │   │   └── layout.tsx
 │   ├── components/
 │   │   ├── ui/                 # componentes de shadcn/ui
@@ -80,10 +82,13 @@ lukas-app/
 │   │   │   ├── server.ts       # cliente de servidor
 │   │   │   ├── env.ts          # lee y valida las variables de Supabase
 │   │   │   └── proxy.ts        # updateSession: refresco de sesión
+│   │   ├── auth/errors.ts      # códigos de Supabase Auth → mensajes en español
 │   │   ├── validations/        # esquemas zod
 │   │   └── utils/
 │   │       ├── money.ts        # formatCOP, parseCOP
-│   │       └── dates.ts
+│   │       ├── dates.ts
+│   │       ├── origin.ts       # origen de la petición para URLs de redirección
+│   │       └── redirect.ts     # safeNextPath: solo rutas internas
 │   ├── types/
 │   │   └── database.ts         # generado con `supabase gen types`
 │   └── proxy.ts                # Next 16 (antes middleware.ts): sesión y protección de rutas
@@ -167,7 +172,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 - [x] Categorías predeterminadas en una **migración nueva** (no en `seed.sql`, que `db push` no aplica al remoto):
   - Gastos: Comida, Transporte, Universidad, Hogar, Servicios, Salud, Entretenimiento, Ropa, Otros
   - Ingresos: Salario, Mesada, Freelance, Otros
-- [ ] Autenticación: correo y contraseña + Google OAuth; páginas de login y registro
+- [x] Autenticación: correo y contraseña + Google OAuth; páginas de login y registro
 - [ ] Protección de rutas con proxy (`src/proxy.ts`)
 - [ ] CRUD de transacciones (crear, listar con filtro por mes, editar, eliminar)
 - [ ] Dashboard: balance del mes (ingresos − gastos), gráfica de dona de gastos por categoría y últimos 5 movimientos
@@ -237,6 +242,9 @@ Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 - Nada de `any`. Los tipos de BD salen de `src/types/database.ts`.
 - Mensajes de error claros y en español para el usuario; logs técnicos en inglés.
 - Diseño mobile-first: la mayoría de usuarios entrará desde el celular.
+- Con `cacheComponents` activo, todo lo que lea datos de la petición (`cookies()`, `searchParams`, sesión) va dentro de `<Suspense>`.
+- Los formularios con datos sensibles llevan `method="post"`, para que un envío antes de la hidratación nunca ponga la contraseña en la URL.
+- Auth: la plantilla "Confirm signup" de Supabase apunta a `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` (ruta `/auth/confirm`). Las Redirect URLs deben terminar en `/**`.
 
 ---
 
