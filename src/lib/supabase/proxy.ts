@@ -1,13 +1,16 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { getAuthRedirect } from '@/lib/auth/routes';
 import type { Database } from '@/types/database';
 
 import { getSupabaseEnv } from './env';
 
 /**
- * Refreshes the Supabase auth session and syncs its cookies between the
- * request and the response. Called from src/proxy.ts on every matched request.
+ * Refreshes the Supabase auth session, syncs its cookies between the request
+ * and the response, and applies the route rules from getAuthRedirect():
+ * signed-out users go to /login?next=..., signed-in users leave /login.
+ * Called from src/proxy.ts on every matched request.
  */
 export async function updateSession(request: NextRequest) {
   const { url, publishableKey } = getSupabaseEnv();
@@ -32,7 +35,28 @@ export async function updateSession(request: NextRequest) {
 
   // Do not add code between createServerClient and getClaims(): it must run
   // first so an expired token is refreshed before anything reads the session.
-  await supabase.auth.getClaims();
+  const { data } = await supabase.auth.getClaims();
 
-  return response;
+  const target = getAuthRedirect({
+    pathname: request.nextUrl.pathname,
+    search: request.nextUrl.search,
+    isAuthenticated: Boolean(data?.claims),
+  });
+  if (!target) return response;
+
+  return redirectKeepingSession(request, response, target);
+}
+
+/**
+ * Builds a redirect that carries over any cookies and cache headers Supabase
+ * set while refreshing the token; dropping them would lose the new session.
+ */
+function redirectKeepingSession(request: NextRequest, from: NextResponse, target: string) {
+  const redirect = NextResponse.redirect(new URL(target, request.url));
+  from.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+  ['cache-control', 'expires', 'pragma'].forEach((name) => {
+    const value = from.headers.get(name);
+    if (value) redirect.headers.set(name, value);
+  });
+  return redirect;
 }

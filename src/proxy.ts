@@ -8,7 +8,9 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and static assets.
-    '/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    // Skip Next.js internals and static image files. Keep `\\.` escaped: a
+    // single `\.` in a JS string is just `.`, which would also skip routes
+    // that merely end in those letters (e.g. /grupos/viaje-png).
+    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 };

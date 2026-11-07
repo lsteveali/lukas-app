@@ -81,8 +81,10 @@ lukas-app/
 │   │   │   ├── client.ts       # cliente de navegador
 │   │   │   ├── server.ts       # cliente de servidor
 │   │   │   ├── env.ts          # lee y valida las variables de Supabase
-│   │   │   └── proxy.ts        # updateSession: refresco de sesión
-│   │   ├── auth/errors.ts      # códigos de Supabase Auth → mensajes en español
+│   │   │   └── proxy.ts        # updateSession: refresco de sesión + redirecciones
+│   │   ├── auth/
+│   │   │   ├── errors.ts       # códigos de Supabase Auth → mensajes en español
+│   │   │   └── routes.ts       # getAuthRedirect: rutas públicas y protegidas
 │   │   ├── validations/        # esquemas zod
 │   │   └── utils/
 │   │       ├── money.ts        # formatCOP, parseCOP
@@ -173,7 +175,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
   - Gastos: Comida, Transporte, Universidad, Hogar, Servicios, Salud, Entretenimiento, Ropa, Otros
   - Ingresos: Salario, Mesada, Freelance, Otros
 - [x] Autenticación: correo y contraseña + Google OAuth; páginas de login y registro
-- [ ] Protección de rutas con proxy (`src/proxy.ts`)
+- [x] Protección de rutas con proxy (`src/proxy.ts`)
 - [ ] CRUD de transacciones (crear, listar con filtro por mes, editar, eliminar)
 - [ ] Dashboard: balance del mes (ingresos − gastos), gráfica de dona de gastos por categoría y últimos 5 movimientos
 - [ ] Utilidades `formatCOP` / `parseCOP` con tests
@@ -245,6 +247,8 @@ Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 - Con `cacheComponents` activo, todo lo que lea datos de la petición (`cookies()`, `searchParams`, sesión) va dentro de `<Suspense>`.
 - Los formularios con datos sensibles llevan `method="post"`, para que un envío antes de la hidratación nunca ponga la contraseña en la URL.
 - Auth: la plantilla "Confirm signup" de Supabase apunta a `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` (ruta `/auth/confirm`). Las Redirect URLs deben terminar en `/**`.
+- Rutas protegidas por defecto: todo exige sesión salvo `/`, `/login`, `/registro` y `/auth/*` (`src/lib/auth/routes.ts`). Una ruta pública nueva se agrega ahí, con su test.
+- Toda redirección a un destino que venga de la URL (`next`) pasa por `safeNextPath`.
 
 ---
 
