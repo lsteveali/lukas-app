@@ -1,63 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { callsTo, resetSupabaseMock, supabaseMock, touchedDb } from '@/test/supabase-mock';
+
 const SESSION_USER = '0b7f2c4e-9a1d-4e3b-8f6a-2c5d7e9f1a3b';
 const OTHER_USER = '5e8a1b3c-7d2f-4a6e-9b1c-3d5f7a9b2c4e';
 const CATEGORY_ID = '3f2b8c1e-5d4a-4b6f-9c2e-1a7d8e9f0b12';
 const TRANSACTION_ID = '9c1d3e5f-7a2b-4c6d-8e1f-2a4b6c8d0e1f';
 
-type DbError = { code: string; message: string } | null;
-
-/**
- * Minimal stand-in for the supabase-js query builder. Records every call so
- * tests can assert the filters, and returns the configured result.
- */
-const mocks = vi.hoisted(() => ({
-  user: null as { id: string } | null,
-  error: null as { code: string; message: string } | null,
-  /** Rows returned by `.select()` after update/delete (RLS may return none). */
-  affectedRows: [] as { id: string }[],
-  calls: [] as { method: string; args: unknown[] }[],
-  revalidatePath: vi.fn(),
-}));
+const mocks = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
-
-vi.mock('@/lib/supabase/server', () => {
-  const builder = () => {
-    const record =
-      (method: string) =>
-      (...args: unknown[]) => {
-        mocks.calls.push({ method, args });
-        return chain;
-      };
-    const chain = {
-      update: record('update'),
-      delete: record('delete'),
-      eq: record('eq'),
-      select: (...args: unknown[]) => {
-        mocks.calls.push({ method: 'select', args });
-        return Promise.resolve({
-          data: mocks.error ? null : mocks.affectedRows,
-          error: mocks.error,
-        });
-      },
-      insert: (row: unknown) => {
-        mocks.calls.push({ method: 'insert', args: [row] });
-        return Promise.resolve({ error: mocks.error as DbError });
-      },
-    };
-    return chain;
-  };
-  return {
-    createClient: async () => ({
-      auth: { getUser: async () => ({ data: { user: mocks.user }, error: null }) },
-      from: (table: string) => {
-        mocks.calls.push({ method: 'from', args: [table] });
-        return builder();
-      },
-    }),
-  };
-});
+vi.mock('@/lib/supabase/server', () => import('@/test/supabase-mock'));
 
 const { createTransaction, deleteTransaction, updateTransaction } = await import('./actions');
 
@@ -69,18 +22,14 @@ const validInput = {
   description: 'Almuerzo',
 };
 
-const callsTo = (method: string) => mocks.calls.filter((call) => call.method === method);
 const expectMoneyPagesRevalidated = () => {
   expect(mocks.revalidatePath).toHaveBeenCalledWith('/transacciones');
   expect(mocks.revalidatePath).toHaveBeenCalledWith('/dashboard');
 };
-const touchedDb = () => mocks.calls.some((call) => call.method === 'from');
 
 beforeEach(() => {
-  mocks.user = { id: SESSION_USER };
-  mocks.error = null;
-  mocks.affectedRows = [{ id: TRANSACTION_ID }];
-  mocks.calls = [];
+  resetSupabaseMock(SESSION_USER);
+  supabaseMock.affectedRows = [{ id: TRANSACTION_ID }];
   mocks.revalidatePath.mockClear();
 });
 
@@ -110,14 +59,14 @@ describe('createTransaction', () => {
   });
 
   it('does not insert without a session', async () => {
-    mocks.user = null;
+    supabaseMock.user = null;
     const result = await createTransaction(validInput);
     expect(result).toEqual({ ok: false, error: 'Tu sesión expiró. Inicia sesión de nuevo.' });
     expect(touchedDb()).toBe(false);
   });
 
   it('explains an RLS rejection as an invalid category', async () => {
-    mocks.error = { code: '42501', message: 'new row violates row-level security policy' };
+    supabaseMock.error = { code: '42501', message: 'new row violates row-level security policy' };
     expect(await createTransaction(validInput)).toEqual({
       ok: false,
       error: 'La categoría no es válida para este tipo de movimiento.',
@@ -150,7 +99,7 @@ describe('updateTransaction', () => {
   });
 
   it('reports "not found" when RLS lets 0 rows through (missing or not yours)', async () => {
-    mocks.affectedRows = [];
+    supabaseMock.affectedRows = [];
     expect(await updateTransaction(TRANSACTION_ID, validInput)).toEqual({
       ok: false,
       error: 'No se encontró el movimiento.',
@@ -167,7 +116,7 @@ describe('updateTransaction', () => {
   });
 
   it('requires a session', async () => {
-    mocks.user = null;
+    supabaseMock.user = null;
     expect(await updateTransaction(TRANSACTION_ID, validInput)).toEqual({
       ok: false,
       error: 'Tu sesión expiró. Inicia sesión de nuevo.',
@@ -176,7 +125,7 @@ describe('updateTransaction', () => {
   });
 
   it('explains an RLS rejection as an invalid category', async () => {
-    mocks.error = { code: '42501', message: 'new row violates row-level security policy' };
+    supabaseMock.error = { code: '42501', message: 'new row violates row-level security policy' };
     expect(await updateTransaction(TRANSACTION_ID, validInput)).toEqual({
       ok: false,
       error: 'La categoría no es válida para este tipo de movimiento.',
@@ -197,7 +146,7 @@ describe('deleteTransaction', () => {
   });
 
   it('reports "not found" when RLS lets 0 rows through (missing or not yours)', async () => {
-    mocks.affectedRows = [];
+    supabaseMock.affectedRows = [];
     expect(await deleteTransaction(TRANSACTION_ID)).toEqual({
       ok: false,
       error: 'No se encontró el movimiento.',
@@ -214,13 +163,13 @@ describe('deleteTransaction', () => {
   });
 
   it('requires a session', async () => {
-    mocks.user = null;
+    supabaseMock.user = null;
     expect(await deleteTransaction(TRANSACTION_ID)).toMatchObject({ ok: false });
     expect(touchedDb()).toBe(false);
   });
 
   it('returns a generic message on database errors', async () => {
-    mocks.error = { code: '57014', message: 'canceling statement due to statement timeout' };
+    supabaseMock.error = { code: '57014', message: 'canceling statement due to statement timeout' };
     expect(await deleteTransaction(TRANSACTION_ID)).toEqual({
       ok: false,
       error: 'No pudimos eliminar el movimiento. Intenta de nuevo.',
