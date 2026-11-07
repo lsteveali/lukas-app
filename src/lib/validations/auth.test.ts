@@ -50,6 +50,51 @@ describe('registerSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  const passwordMessages = (password: string) => {
+    const result = registerSchema.safeParse({
+      ...validRegister,
+      password,
+      confirmPassword: password,
+    });
+    return result.success
+      ? []
+      : result.error.issues
+          .filter((issue) => issue.path[0] === 'password')
+          .map((issue) => issue.message);
+  };
+
+  it.each(['contraseña1', 'Segura2026', 'a1234567', '12345abc'])(
+    'accepts %j (letters and digits)',
+    (password) => {
+      expect(passwordMessages(password)).toEqual([]);
+    },
+  );
+
+  it('requires at least one letter', () => {
+    expect(passwordMessages('12345678')).toEqual([
+      'La contraseña debe tener al menos una letra (a–z).',
+    ]);
+  });
+
+  it('requires at least one digit', () => {
+    expect(passwordMessages('soloLetras')).toEqual([
+      'La contraseña debe tener al menos un número.',
+    ]);
+  });
+
+  it('counts letters like Supabase does (ASCII), so ñ or tildes alone are not enough', () => {
+    expect(passwordMessages('ñññññññ1')).toEqual([
+      'La contraseña debe tener al menos una letra (a–z).',
+    ]);
+  });
+
+  it('reports every broken rule at once', () => {
+    expect(passwordMessages('corto')).toEqual([
+      'La contraseña debe tener al menos 8 caracteres.',
+      'La contraseña debe tener al menos un número.',
+    ]);
+  });
+
   it('reports mismatched passwords on confirmPassword', () => {
     const result = registerSchema.safeParse({ ...validRegister, confirmPassword: 'otra1234' });
     expect(result.success).toBe(false);
