@@ -54,6 +54,7 @@ const CHAIN_METHODS = [
   'gte',
   'lt',
   'order',
+  'maybeSingle',
 ];
 
 /** Chainable, awaitable stand-in for the supabase-js query builder. */
