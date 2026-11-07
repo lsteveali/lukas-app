@@ -1,6 +1,7 @@
 'use client';
 
 import { Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { deleteGoal } from '@/app/(app)/metas/actions';
@@ -19,7 +20,14 @@ import { FieldError } from '@/components/ui/field';
 import type { Goal } from '@/lib/finance/goals';
 import { formatCOP } from '@/lib/utils/money';
 
-export function DeleteGoalButton({ goal }: { goal: Goal }) {
+type DeleteGoalButtonProps = {
+  goal: Goal;
+  /** Where to go after deleting (e.g. back to /metas from the detail page). */
+  redirectTo?: string;
+};
+
+export function DeleteGoalButton({ goal, redirectTo }: DeleteGoalButtonProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -33,6 +41,7 @@ export function DeleteGoalButton({ goal }: { goal: Goal }) {
         return;
       }
       setOpen(false);
+      if (redirectTo) router.push(redirectTo);
     });
   };
 

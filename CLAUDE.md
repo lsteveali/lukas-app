@@ -269,6 +269,10 @@ Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 - Campos de dinero en zod: usa `positiveAmount` de `src/lib/validations/money.ts` (mismo `parseCOP`, tope y mensajes en toda la app).
 - Tests de Server Actions: `vi.mock('@/lib/supabase/server', () => import('@/test/supabase-mock'))` y los helpers `supabaseMock`, `resetSupabaseMock`, `callsTo`, `touchedDb`.
 - Las vistas de Supabase se tipan con todas las columnas `| null`: normaliza cada fila con una función testeada (p. ej. `toGoal`) en vez de usar `!`.
+- Un archivo `'use server'` solo exporta funciones async (y tipos). Las constantes compartidas (mensajes, etc.) van en `src/lib/`; si no, el build falla aunque los tests pasen.
+- `usePathname()`/`useSearchParams()` en componentes del layout cuentan como datos de la URL en rutas dinámicas (`/metas/[id]`): van dentro de `<Suspense>` con un fallback (ver `AppNav`).
+- Rutas dinámicas con datos del usuario: valida el id (`z.uuid()`) y llama `notFound()` si no existe o RLS lo oculta. Como corre dentro de `<Suspense>`, responde 200 con `noindex` y muestra el `not-found.tsx` de la ruta.
+- Errores del trigger de metas: `23514` **y** mensaje `goal_balance_negative` → `NEGATIVE_BALANCE_MESSAGE` (`lib/finance/contributions.ts`). Otros `check` también usan `23514`.
 - Al agregar componentes con el CLI de shadcn: quita el paquete `cn` que instala y cambia `from "cn"` por `@/lib/utils/cn`. Los textos para lectores de pantalla van en español.
 
 ---
