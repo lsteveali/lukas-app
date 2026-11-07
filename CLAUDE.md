@@ -75,7 +75,7 @@ lukas-app/
 │   │   └── layout.tsx
 │   ├── components/
 │   │   ├── ui/                 # componentes de shadcn/ui
-│   │   ├── layout/AppNav.tsx   # navegación de (app): header en escritorio, barra inferior en celular
+│   │   ├── layout/             # AppNav (header + barra inferior), UserMenu (avatar → Cerrar sesión), floating.ts
 │   │   └── ...                 # componentes propios por feature (auth, transactions, dashboard)
 │   ├── lib/
 │   │   ├── supabase/
@@ -264,7 +264,11 @@ Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 - `update`/`delete` en Server Actions: con RLS, una fila ajena o inexistente no da error, solo afecta 0 filas. Encadena `.eq('user_id', userId).select('id')` y, si `data` llega vacío, devuelve "No se encontró…". Cada acción nueva lleva un test de ese caso.
 - Toda mutación de transacciones revalida `/transacciones` y `/dashboard` (`revalidateMoneyPages` en `transacciones/actions.ts`). Si una página nueva muestra movimientos o totales, agrégala ahí.
 - Totales y agrupaciones de dinero se calculan en el servidor con funciones puras y testeadas (`src/lib/finance/summary.ts`), siempre en enteros.
-- La barra inferior del celular mide `--bottom-nav-height` (`globals.css`). Todo lo fijo abajo (botones flotantes) se desplaza con esa variable.
+- La barra inferior del celular mide `--bottom-nav-height` (`globals.css`). Todo lo fijo abajo (botones flotantes) se desplaza con esa variable: usa `FLOATING_ACTION_CLASS` (`components/layout/floating.ts`) y envuelve el botón en `contents sm:flex` para que su contenedor no deje un hueco en el celular.
+- Navegación: `NAV_ITEMS` en `AppNav.tsx` alimenta el header (escritorio) y la barra inferior (celular): Inicio, Movimientos, Metas (y Presupuestos en el #28). "Cerrar sesión" vive en el menú del avatar (`UserMenu`), en el header de todos los tamaños.
+- Campos de dinero en zod: usa `positiveAmount` de `src/lib/validations/money.ts` (mismo `parseCOP`, tope y mensajes en toda la app).
+- Tests de Server Actions: `vi.mock('@/lib/supabase/server', () => import('@/test/supabase-mock'))` y los helpers `supabaseMock`, `resetSupabaseMock`, `callsTo`, `touchedDb`.
+- Las vistas de Supabase se tipan con todas las columnas `| null`: normaliza cada fila con una función testeada (p. ej. `toGoal`) en vez de usar `!`.
 - Al agregar componentes con el CLI de shadcn: quita el paquete `cn` que instala y cambia `from "cn"` por `@/lib/utils/cn`. Los textos para lectores de pantalla van en español.
 
 ---

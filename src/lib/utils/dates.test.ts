@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   currentMonthInBogota,
+  formatLongDate,
   formatMonthLabel,
   formatShortDate,
   isValidIsoDate,
@@ -84,5 +85,12 @@ describe('formatting', () => {
   it('formats the first day of a month without shifting to the previous day', () => {
     expect(formatShortDate('2026-11-01')).toBe('1 de nov');
     expect(formatShortDate('2026-01-31')).toBe('31 de ene');
+  });
+});
+
+describe('formatLongDate', () => {
+  it('includes the year and does not shift the day', () => {
+    expect(formatLongDate('2026-12-31')).toBe('31 de dic de 2026');
+    expect(formatLongDate('2027-01-01')).toBe('1 de ene de 2027');
   });
 });

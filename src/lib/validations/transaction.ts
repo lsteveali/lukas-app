@@ -1,27 +1,16 @@
 import { z } from 'zod';
 
 import { isValidIsoDate } from '@/lib/utils/dates';
-import { parseCOP } from '@/lib/utils/money';
 
-export const MAX_TRANSACTION_AMOUNT = 1_000_000_000;
+import { MAX_AMOUNT, positiveAmount } from './money';
+
+export const MAX_TRANSACTION_AMOUNT = MAX_AMOUNT;
 export const DESCRIPTION_MAX = 200;
 
 export const TRANSACTION_TYPES = ['expense', 'income'] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 
-/** Amount typed by the user ("15.000", "$ 15.000") → integer pesos. */
-const amount = z.string().transform((value, ctx) => {
-  const parsed = parseCOP(value);
-  if (parsed === null || parsed <= 0) {
-    ctx.addIssue({ code: 'custom', message: 'Escribe un monto válido, por ejemplo 15.000.' });
-    return z.NEVER;
-  }
-  if (parsed > MAX_TRANSACTION_AMOUNT) {
-    ctx.addIssue({ code: 'custom', message: 'Ese monto parece muy alto, revísalo.' });
-    return z.NEVER;
-  }
-  return parsed;
-});
+const amount = positiveAmount;
 
 /**
  * Shared by the form and the Server Action. It has no user_id on purpose:

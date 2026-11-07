@@ -76,7 +76,8 @@ async function TransactionsView({
   return (
     <>
       <MonthNav month={month} basePath="/transacciones" />
-      <div className="flex justify-end">
+      {/* contents on phones: the button is fixed, so the wrapper must not take space (or a gap). */}
+      <div className="contents sm:flex sm:justify-end">
         <NewTransactionDialog categories={categories} currentMonth={monthParam} floating />
       </div>
       {/* Shows "Movido a …" when an edit moves a transaction to another month. */}

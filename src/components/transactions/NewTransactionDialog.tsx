@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { FLOATING_ACTION_CLASS } from '@/components/layout/floating';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -51,13 +52,7 @@ export function NewTransactionDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          size="lg"
-          className={cn(
-            floating &&
-              'fixed right-4 bottom-[calc(var(--bottom-nav-height)+1rem+env(safe-area-inset-bottom))] z-40 rounded-full shadow-lg sm:static sm:rounded-lg sm:shadow-none',
-          )}
-        >
+        <Button size="lg" className={cn(floating && FLOATING_ACTION_CLASS)}>
           <Plus aria-hidden />
           {triggerLabel}
         </Button>

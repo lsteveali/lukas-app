@@ -1,17 +1,17 @@
 'use client';
 
-import { LayoutDashboard, ReceiptText, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, PiggyBank, ReceiptText, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { SignOutButton } from '@/components/auth/SignOutButton';
 import { cn } from '@/lib/utils/cn';
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Inicio', icon: LayoutDashboard },
   { href: '/transacciones', label: 'Movimientos', icon: ReceiptText },
+  { href: '/metas', label: 'Metas', icon: PiggyBank },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -19,42 +19,42 @@ function isActive(pathname: string, href: string) {
 }
 
 /**
- * Navigation for the private (app) pages: a header on desktop and a fixed
- * bottom bar on phones. Its height is --bottom-nav-height (globals.css).
+ * Navigation for the private (app) pages. A header on every screen size with
+ * the user menu (avatar → "Cerrar sesión"); the section links live in the
+ * header on desktop and in a fixed bottom bar on phones, whose height is
+ * --bottom-nav-height (globals.css).
  */
-export function AppNav() {
+export function AppNav({ userMenu }: { userMenu: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
     <>
-      {/* Desktop / tablet: top header. */}
-      <header className="hidden border-b sm:block">
-        <nav
-          aria-label="Principal"
-          className="mx-auto flex h-14 w-full max-w-3xl items-center gap-1 px-4"
-        >
+      <header className="border-b">
+        <div className="mx-auto flex h-14 w-full max-w-3xl items-center gap-1 px-4">
           <Link href="/dashboard" className="mr-4 text-lg font-bold">
             Lukas
           </Link>
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const active = isActive(pathname, href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                aria-current={active ? 'page' : undefined}
-                className={cn(
-                  'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
-                  active && 'bg-muted text-foreground',
-                )}
-              >
-                <Icon className="size-4" aria-hidden />
-                {label}
-              </Link>
-            );
-          })}
-          <SignOutButton className="ml-auto" />
-        </nav>
+          <nav aria-label="Principal" className="hidden items-center gap-1 sm:flex">
+            {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+              const active = isActive(pathname, href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+                    active && 'bg-muted text-foreground',
+                  )}
+                >
+                  <Icon className="size-4" aria-hidden />
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="ml-auto flex items-center">{userMenu}</div>
+        </div>
       </header>
 
       {/* Phones: fixed bottom bar, within thumb reach. */}
@@ -81,9 +81,6 @@ export function AppNav() {
               </li>
             );
           })}
-          <li>
-            <SignOutButton appearance="tab" />
-          </li>
         </ul>
       </nav>
     </>
