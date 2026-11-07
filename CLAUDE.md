@@ -176,7 +176,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
   - Ingresos: Salario, Mesada, Freelance, Otros
 - [x] Autenticación: correo y contraseña + Google OAuth; páginas de login y registro
 - [x] Protección de rutas con proxy (`src/proxy.ts`)
-- [ ] CRUD de transacciones (crear, listar con filtro por mes, editar, eliminar)
+- [x] CRUD de transacciones (crear, listar con filtro por mes, editar, eliminar)
 - [ ] Dashboard: balance del mes (ingresos − gastos), gráfica de dona de gastos por categoría y últimos 5 movimientos
 - [x] Utilidades `formatCOP` / `parseCOP` con tests
 - [x] Workflow de CI (lint, typecheck, tests)
@@ -250,6 +250,7 @@ Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 - Rutas protegidas por defecto: todo exige sesión salvo `/`, `/login`, `/registro` y `/auth/*` (`src/lib/auth/routes.ts`). Una ruta pública nueva se agrega ahí, con su test.
 - Toda redirección a un destino que venga de la URL (`next`) pasa por `safeNextPath`.
 - Fechas: usa `src/lib/utils/dates.ts` (`todayInBogota`, `parseMonthParam`, `monthRange`…). Nunca `new Date().toISOString().slice(0, 10)` ni la fecha local del servidor, que en Vercel es UTC. Las fechas `YYYY-MM-DD` se formatean en UTC para no correrse un día.
+- `update`/`delete` en Server Actions: con RLS, una fila ajena o inexistente no da error, solo afecta 0 filas. Encadena `.eq('user_id', userId).select('id')` y, si `data` llega vacío, devuelve "No se encontró…". Cada acción nueva lleva un test de ese caso.
 - Al agregar componentes con el CLI de shadcn: quita el paquete `cn` que instala y cambia `from "cn"` por `@/lib/utils/cn`. Los textos para lectores de pantalla van en español.
 
 ---
