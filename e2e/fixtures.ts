@@ -63,9 +63,20 @@ export const test = base.extend<{ testUser: TestUser }>({
 
 export { expect };
 
+/**
+ * Waits until React hydrated the login form (its submit button is disabled
+ * until then). Typing earlier is lost: hydration resets the controlled inputs.
+ */
+export async function waitForLoginForm(page: Page) {
+  await expect(page.getByRole('button', { name: 'Iniciar sesión' })).toBeEnabled({
+    timeout: 15_000,
+  });
+}
+
 /** Signs in through the real /login form. */
 export async function loginAs(page: Page, user: TestUser, path = '/dashboard') {
   await page.goto(`/login?next=${encodeURIComponent(path)}`);
+  await waitForLoginForm(page);
   await page.getByLabel('Correo').fill(user.email);
   await page.getByLabel('Contraseña').fill(user.password);
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();

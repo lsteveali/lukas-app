@@ -1,4 +1,4 @@
-import { expect, loginAs, test } from './fixtures';
+import { expect, loginAs, test, waitForLoginForm } from './fixtures';
 
 test.describe('autenticación', () => {
   test('una ruta protegida lleva al login y vuelve después de iniciar sesión', async ({
@@ -8,6 +8,7 @@ test.describe('autenticación', () => {
     await page.goto('/transacciones?mes=2026-11');
     await expect(page).toHaveURL(/\/login\?next=%2Ftransacciones%3Fmes%3D2026-11/);
 
+    await waitForLoginForm(page);
     await page.getByLabel('Correo').fill(testUser.email);
     await page.getByLabel('Contraseña').fill(testUser.password);
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
@@ -18,6 +19,7 @@ test.describe('autenticación', () => {
 
   test('credenciales incorrectas muestran el error en español', async ({ page, testUser }) => {
     await page.goto('/login');
+    await waitForLoginForm(page);
     await page.getByLabel('Correo').fill(testUser.email);
     await page.getByLabel('Contraseña').fill('NoEsLaClave1');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
