@@ -145,7 +145,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 **goal_contributions** (v0.2)
 - `id`, `goal_id`, `user_id`, `amount bigint check (amount <> 0)` (positivo = aporte, negativo = retiro), `date date` (por defecto hoy en Bogotá), `note text` (≤ 120), `created_at`
 - FK compuesta `(goal_id, user_id) → goals (id, user_id) on delete cascade`: un aporte solo puede ser de una meta del mismo usuario.
-- Trigger `check_goal_balance` (after insert/update/delete): bloquea la meta con `select … for update` y rechaza el cambio si la suma queda negativa (`23514`, mensaje `goal_balance_negative`). El `for update` necesita que `authenticated` tenga UPDATE en al menos una columna de `goals`.
+- Trigger `check_goal_balance` (after insert/update/delete): bloquea la meta con `select … for no key update` y rechaza el cambio si la suma queda negativa (`23514`, mensaje `goal_balance_negative`). Es `no key update` y no `update`: el `for update` chocaba con el `for key share` de la FK compuesta y dos retiros simultáneos terminaban en deadlock (`40P01`), lo detectó el e2e de concurrencia. El bloqueo necesita que `authenticated` tenga UPDATE en al menos una columna de `goals`.
 - Solo se pueden actualizar `amount`, `date` y `note`.
 
 **goals_with_progress** (vista, v0.2, `security_invoker = true`)
@@ -258,6 +258,8 @@ Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 - Mensajes de error claros y en español para el usuario; logs técnicos en inglés.
 - Diseño mobile-first: la mayoría de usuarios entrará desde el celular.
 - Con `cacheComponents` activo, todo lo que lea datos de la petición (`cookies()`, `searchParams`, sesión) va dentro de `<Suspense>`.
+- Leer la fecha/hora actual en un Server Component (`todayInBogota()`, `parseMonthParam` sin `mes`, `new Date()`) exige `await connection()` antes (de `next/server`); leer cookies no basta con `partialPrefetching`. Sin eso Next registra "unstable value `Date.now()` while prerendering".
+- Formularios que envían por JavaScript (react-hook-form + Server Action) y se renderizan en el servidor: el botón de enviar va `disabled` hasta `useHydrated()`. Si no, un toque antes de hidratar hace un POST nativo que recarga la página y borra lo escrito.
 - Los formularios con datos sensibles llevan `method="post"`, para que un envío antes de la hidratación nunca ponga la contraseña en la URL.
 - Auth: la plantilla "Confirm signup" de Supabase apunta a `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` (ruta `/auth/confirm`). Las Redirect URLs deben terminar en `/**`.
 - Rutas protegidas por defecto: todo exige sesión salvo `/`, `/login`, `/registro` y `/auth/*` (`src/lib/auth/routes.ts`). Una ruta pública nueva se agrega ahí, con su test.
