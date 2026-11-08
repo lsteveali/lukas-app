@@ -8,6 +8,7 @@ import { signIn } from '@/app/(auth)/actions';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { useHydrated } from '@/lib/hooks/use-hydrated';
 import { loginSchema, type LoginInput } from '@/lib/validations/auth';
 
 type LoginFormProps = {
@@ -18,6 +19,8 @@ type LoginFormProps = {
 export function LoginForm({ next, initialError = null }: LoginFormProps) {
   const [serverError, setServerError] = useState<string | null>(initialError);
   const [isPending, startTransition] = useTransition();
+  // Until hydrated, a submit would be a native POST that reloads the page.
+  const hydrated = useHydrated();
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
@@ -78,7 +81,7 @@ export function LoginForm({ next, initialError = null }: LoginFormProps) {
           )}
         />
         {serverError && <FieldError>{serverError}</FieldError>}
-        <Button type="submit" className="w-full" disabled={isPending}>
+        <Button type="submit" className="w-full" disabled={!hydrated || isPending}>
           {isPending ? 'Ingresando…' : 'Iniciar sesión'}
         </Button>
       </FieldGroup>
