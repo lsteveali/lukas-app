@@ -196,7 +196,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 ### v0.2: Metas y presupuestos
 - Metas de ahorro con barra de progreso y aportes
 - Presupuesto mensual por categoría con alerta al llegar al 80 % y al 100 %
-- Tests e2e de los flujos principales
+- Tests e2e de los flujos principales (Playwright + Supabase local en CI)
 
 ### v0.3: Gastos compartidos
 - Crear grupos e invitar miembros (por enlace o correo)
@@ -242,6 +242,8 @@ npm run db:push      # aplica las migraciones pendientes al proyecto vinculado (
 
 Los scripts usan el CLI de Supabase v3 vía `npx supabase@3.0.0` (no es dependencia del proyecto). Requieren `npx supabase login` y `npx supabase link` una vez por máquina. Sin Docker no hay stack local: prueba las migraciones antes de hacer `db:push`.
 
+**Tests e2e (decisión del #30):** corren en GitHub Actions contra **Supabase local** (`npx supabase@3.0.0 start` en el job `e2e` de `ci.yml`, que aplica las migraciones). No hay proyecto de pruebas alojado ni secrets: `playwright.config.ts` lee URL y claves de `supabase status` y se niega a correr si la URL no es local. `npm run test:e2e` (requiere Docker en local).
+
 Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 
 ---
@@ -271,6 +273,7 @@ Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 - Navegación: `NAV_ITEMS` en `AppNav.tsx` alimenta el header (escritorio) y la barra inferior (celular): Inicio, Movimientos, Metas y Presupuestos (la barra inferior tiene 4 columnas; revisa que quepa a 375 px si agregas otra). "Cerrar sesión" vive en el menú del avatar (`UserMenu`), en el header de todos los tamaños.
 - Campos de dinero en zod: usa `positiveAmount` de `src/lib/validations/money.ts` (mismo `parseCOP`, tope y mensajes en toda la app).
 - Tests de Server Actions: `vi.mock('@/lib/supabase/server', () => import('@/test/supabase-mock'))` y los helpers `supabaseMock`, `resetSupabaseMock`, `callsTo`, `touchedDb`. Si la acción hace varias consultas, encola un resultado por consulta en `supabaseMock.results`.
+- Tests e2e (`e2e/`): usa el fixture `testUser` de `e2e/fixtures.ts` (un usuario confirmado por test, creado y borrado con la API de administración del Supabase local) y `loginAs`. Selectores por rol/etiqueta en español (`getByRole`, `getByLabel`), nunca por clases. Corren en 375 px y escritorio; los que no necesitan navegador van en `*.db.spec.ts` (proyecto `db`). La `service_role` local solo vive en `e2e/`, nunca en `src/`.
 - Las vistas de Supabase se tipan con todas las columnas `| null`: normaliza cada fila con una función testeada (p. ej. `toGoal`) en vez de usar `!`.
 - Un archivo `'use server'` solo exporta funciones async (y tipos). Las constantes compartidas (mensajes, etc.) van en `src/lib/`; si no, el build falla aunque los tests pasen.
 - `usePathname()`/`useSearchParams()` en componentes del layout cuentan como datos de la URL en rutas dinámicas (`/metas/[id]`): van dentro de `<Suspense>` con un fallback (ver `AppNav`).

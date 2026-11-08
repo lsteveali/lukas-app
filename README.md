@@ -120,11 +120,39 @@ npm run build          # build de producción
 npm run lint           # ESLint
 npm run typecheck      # genera los tipos de rutas y corre tsc --noEmit
 npm run test           # Vitest
+npm run test:e2e       # Playwright contra Supabase local (requiere Docker, ver abajo)
 npm run format         # Prettier (escribe)
 npm run format:check   # Prettier (solo revisa, como en CI)
 npm run db:push        # aplica migraciones pendientes al proyecto vinculado
 npm run db:types       # regenera los tipos de la base de datos
 ```
+
+## Tests end-to-end
+
+Los tests e2e (Playwright, carpeta `e2e/`) corren en **CI en cada PR**, en el job `e2e` de `ci.yml`, contra un **Supabase local** levantado con Docker (`supabase start`, que aplica las migraciones). No usan ningún proyecto alojado ni secrets de GitHub: la URL y las claves salen de `supabase status`.
+
+- **Flujos:** inicio de sesión y cierre de sesión, crear/editar/eliminar un movimiento, meta con aporte, retiro y retiro rechazado, presupuesto con el aviso al cruzar el 80 % y la alerta del dashboard.
+- **Viewports:** 375 px (celular) y escritorio.
+- **Concurrencia:** `e2e/concurrency.db.spec.ts` lanza dos retiros simultáneos sobre la misma meta con `Promise.all` y verifica que solo uno se acepta.
+- **Datos:** cada test crea su propio usuario confirmado con la API de administración (usando la `service_role` del Supabase **local**) y lo borra al terminar.
+- **Si fallan en CI:** descarga el artifact `playwright-report` del run y abre el trace:
+
+  ```bash
+  npx playwright show-trace test-results/<carpeta-del-test>/trace.zip
+  ```
+
+### Correrlos en tu máquina
+
+Necesitas [Docker](https://docs.docker.com/get-docker/) corriendo.
+
+```bash
+npx supabase@3.0.0 start          # Supabase local con las migraciones aplicadas
+npx playwright install chromium   # solo la primera vez
+npm run test:e2e                  # compila la app contra el Supabase local y corre Playwright
+npx supabase@3.0.0 stop           # al terminar
+```
+
+`npm run test:e2e:ui` abre el modo interactivo de Playwright. Los e2e se niegan a correr si la URL de Supabase no es local, así que nunca tocan tu proyecto de producción.
 
 ## Flujo de trabajo
 
