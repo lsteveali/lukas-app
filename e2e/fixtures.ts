@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { test as base, expect, type Page } from '@playwright/test';
+import { test as base, expect, type Locator, type Page } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
 import type { Database } from '../src/types/database';
@@ -70,6 +70,20 @@ export async function loginAs(page: Page, user: TestUser, path = '/dashboard') {
   await page.getByLabel('Contraseña').fill(user.password);
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
   await page.waitForURL((url) => url.pathname === path.split('?')[0]);
+}
+
+/**
+ * Clicks a button that opens a dialog and waits for it. Retries the click: a
+ * tap that lands before React hydrates the trigger does nothing (just like on
+ * a slow phone, where the user simply taps again).
+ */
+export async function openDialog(page: Page, trigger: Locator, dialogName: string | RegExp) {
+  const dialog = page.getByRole('dialog', { name: dialogName });
+  await expect(async () => {
+    if (!(await dialog.isVisible())) await trigger.click();
+    await expect(dialog).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 15_000 });
+  return dialog;
 }
 
 /** Picks an option in a shadcn/Radix Select by its visible label. */

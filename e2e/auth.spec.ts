@@ -30,8 +30,15 @@ test.describe('autenticación', () => {
     await loginAs(page, testUser);
     await expect(page.getByRole('heading', { name: /Hola, Ana/ })).toBeVisible();
 
-    await page.getByRole('button', { name: `Menú de ${testUser.fullName}` }).click();
-    await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click();
+    // The avatar menu streams in; retry the tap until the menu opens.
+    const signOut = page.getByRole('menuitem', { name: 'Cerrar sesión' });
+    await expect(async () => {
+      if (!(await signOut.isVisible())) {
+        await page.getByRole('button', { name: `Menú de ${testUser.fullName}` }).click();
+      }
+      await expect(signOut).toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: 15_000 });
+    await signOut.click();
 
     await expect(page).toHaveURL(/\/login$/);
     // The session is gone: protected pages send you back to login.

@@ -1,11 +1,14 @@
-import { expect, loginAs, selectOption, test } from './fixtures';
+import { expect, loginAs, openDialog, selectOption, test } from './fixtures';
 
 test('presupuesto con la alerta al cruzar el 80 %', async ({ page, testUser }) => {
   await loginAs(page, testUser, '/presupuestos');
 
   // Budget of 100.000 for Comida this month.
-  await page.getByRole('button', { name: 'Nuevo presupuesto' }).click();
-  const budgetDialog = page.getByRole('dialog', { name: 'Nuevo presupuesto' });
+  const budgetDialog = await openDialog(
+    page,
+    page.getByRole('button', { name: 'Nuevo presupuesto' }),
+    'Nuevo presupuesto',
+  );
   await selectOption(page, 'Categoría', 'Comida');
   await budgetDialog.getByLabel('Límite del mes').fill('100.000');
   await budgetDialog.getByRole('button', { name: 'Crear presupuesto' }).click();
@@ -14,8 +17,11 @@ test('presupuesto con la alerta al cruzar el 80 %', async ({ page, testUser }) =
 
   // An 85.000 expense crosses 80 %: the notice appears right after saving.
   await page.goto('/transacciones');
-  await page.getByRole('button', { name: 'Nuevo movimiento' }).first().click();
-  const txDialog = page.getByRole('dialog', { name: 'Nuevo movimiento' });
+  const txDialog = await openDialog(
+    page,
+    page.getByRole('button', { name: 'Nuevo movimiento' }).first(),
+    'Nuevo movimiento',
+  );
   await txDialog.getByLabel('Monto').fill('85.000');
   await selectOption(page, 'Categoría', 'Comida');
   await txDialog.getByRole('button', { name: 'Guardar movimiento' }).click();
