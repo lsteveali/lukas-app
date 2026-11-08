@@ -1,6 +1,7 @@
 import { PiggyBank } from 'lucide-react';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { connection } from 'next/server';
 import { Suspense } from 'react';
 
 import { GoalCard } from '@/components/goals/GoalCard';
@@ -62,6 +63,8 @@ async function GoalsView() {
     );
   }
 
+  // Reading the current date needs request time under cacheComponents.
+  await connection();
   const today = todayInBogota();
   return (
     <>
