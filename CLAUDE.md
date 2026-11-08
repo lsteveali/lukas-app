@@ -258,7 +258,7 @@ Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 - Mensajes de error claros y en español para el usuario; logs técnicos en inglés.
 - Diseño mobile-first: la mayoría de usuarios entrará desde el celular.
 - Con `cacheComponents` activo, todo lo que lea datos de la petición (`cookies()`, `searchParams`, sesión) va dentro de `<Suspense>`.
-- Leer la fecha/hora actual en un Server Component (`todayInBogota()`, `parseMonthParam` sin `mes`, `new Date()`) exige `await connection()` antes (de `next/server`); leer cookies no basta con `partialPrefetching`. Sin eso Next registra "unstable value `Date.now()` while prerendering".
+- Leer la fecha/hora actual en un Server Component (`todayInBogota()`, `parseMonthParam` sin `mes`, `new Date()`) exige `await connection()` antes (de `next/server`); leer cookies no basta con `partialPrefetching`. Sin eso Next registra "unstable value `Date.now()` while prerendering". supabase-js también lee la hora al cargar la sesión: por eso `createClient()` de `src/lib/supabase/server.ts` ya llama a `connection()`.
 - Formularios que envían por JavaScript (react-hook-form + Server Action) y se renderizan en el servidor: el botón de enviar va `disabled` hasta `useHydrated()`. Si no, un toque antes de hidratar hace un POST nativo que recarga la página y borra lo escrito.
 - Los formularios con datos sensibles llevan `method="post"`, para que un envío antes de la hidratación nunca ponga la contraseña en la URL.
 - Auth: la plantilla "Confirm signup" de Supabase apunta a `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` (ruta `/auth/confirm`). Las Redirect URLs deben terminar en `/**`.
