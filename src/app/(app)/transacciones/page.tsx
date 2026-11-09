@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { connection } from 'next/server';
 import { Suspense } from 'react';
 
 import { MonthNav } from '@/components/transactions/MonthNav';
@@ -29,6 +30,8 @@ async function TransactionsView({
   searchParams,
 }: Pick<PageProps<'/transacciones'>, 'searchParams'>) {
   const params = await searchParams;
+  // Reading the current date needs request time under cacheComponents.
+  await connection();
   const month = parseMonthParam(typeof params.mes === 'string' ? params.mes : undefined);
   const { start, end } = monthRange(month);
   const monthParam = toMonthParam(month);

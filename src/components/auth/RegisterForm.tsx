@@ -10,6 +10,7 @@ import { signUp } from '@/app/(auth)/actions';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { useHydrated } from '@/lib/hooks/use-hydrated';
 import { PASSWORD_HINT, registerSchema, type RegisterInput } from '@/lib/validations/auth';
 
 type TextField = {
@@ -56,6 +57,8 @@ export function RegisterForm() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  // Until hydrated, a submit would be a native POST that reloads the page.
+  const hydrated = useHydrated();
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: { fullName: '', email: '', password: '', confirmPassword: '' },
@@ -119,7 +122,7 @@ export function RegisterForm() {
           />
         ))}
         {serverError && <FieldError>{serverError}</FieldError>}
-        <Button type="submit" className="w-full" disabled={isPending}>
+        <Button type="submit" className="w-full" disabled={!hydrated || isPending}>
           {isPending ? 'Creando cuenta…' : 'Crear cuenta'}
         </Button>
       </FieldGroup>

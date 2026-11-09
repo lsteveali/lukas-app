@@ -145,7 +145,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 **goal_contributions** (v0.2)
 - `id`, `goal_id`, `user_id`, `amount bigint check (amount <> 0)` (positivo = aporte, negativo = retiro), `date date` (por defecto hoy en Bogotá), `note text` (≤ 120), `created_at`
 - FK compuesta `(goal_id, user_id) → goals (id, user_id) on delete cascade`: un aporte solo puede ser de una meta del mismo usuario.
-- Trigger `check_goal_balance` (after insert/update/delete): bloquea la meta con `select … for update` y rechaza el cambio si la suma queda negativa (`23514`, mensaje `goal_balance_negative`). El `for update` necesita que `authenticated` tenga UPDATE en al menos una columna de `goals`.
+- Trigger `check_goal_balance` (after insert/update/delete): bloquea la meta con `select … for no key update` y rechaza el cambio si la suma queda negativa (`23514`, mensaje `goal_balance_negative`). Es `no key update` y no `update`: el `for update` chocaba con el `for key share` de la FK compuesta y dos retiros simultáneos terminaban en deadlock (`40P01`), lo detectó el e2e de concurrencia. El bloqueo necesita que `authenticated` tenga UPDATE en al menos una columna de `goals`.
 - Solo se pueden actualizar `amount`, `date` y `note`.
 
 **goals_with_progress** (vista, v0.2, `security_invoker = true`)
@@ -196,7 +196,7 @@ Las rutas de la URL van en español porque el usuario las ve (`/transacciones`, 
 ### v0.2: Metas y presupuestos
 - Metas de ahorro con barra de progreso y aportes
 - Presupuesto mensual por categoría con alerta al llegar al 80 % y al 100 %
-- Tests e2e de los flujos principales
+- Tests e2e de los flujos principales (Playwright + Supabase local en CI)
 
 ### v0.3: Gastos compartidos
 - Crear grupos e invitar miembros (por enlace o correo)
@@ -242,6 +242,8 @@ npm run db:push      # aplica las migraciones pendientes al proyecto vinculado (
 
 Los scripts usan el CLI de Supabase v3 vía `npx supabase@3.0.0` (no es dependencia del proyecto). Requieren `npx supabase login` y `npx supabase link` una vez por máquina. Sin Docker no hay stack local: prueba las migraciones antes de hacer `db:push`.
 
+**Tests e2e (decisión del #30):** corren en GitHub Actions contra **Supabase local** (`npx supabase@3.0.0 start` en el job `e2e` de `ci.yml`, que aplica las migraciones). No hay proyecto de pruebas alojado ni secrets: `playwright.config.ts` lee URL y claves de `supabase status` y se niega a correr si la URL no es local. `npm run test:e2e` (requiere Docker en local).
+
 Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 
 ---
@@ -256,6 +258,8 @@ Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 - Mensajes de error claros y en español para el usuario; logs técnicos en inglés.
 - Diseño mobile-first: la mayoría de usuarios entrará desde el celular.
 - Con `cacheComponents` activo, todo lo que lea datos de la petición (`cookies()`, `searchParams`, sesión) va dentro de `<Suspense>`.
+- Leer la fecha/hora actual en un Server Component (`todayInBogota()`, `parseMonthParam` sin `mes`, `new Date()`) exige `await connection()` antes (de `next/server`); leer cookies no basta con `partialPrefetching`. Sin eso Next registra "unstable value `Date.now()` while prerendering". supabase-js también lee la hora al cargar la sesión: por eso `createClient()` de `src/lib/supabase/server.ts` ya llama a `connection()`.
+- Formularios que envían por JavaScript (react-hook-form + Server Action) y se renderizan en el servidor: el botón de enviar va `disabled` hasta `useHydrated()`. Si no, un toque antes de hidratar hace un POST nativo que recarga la página y borra lo escrito.
 - Los formularios con datos sensibles llevan `method="post"`, para que un envío antes de la hidratación nunca ponga la contraseña en la URL.
 - Auth: la plantilla "Confirm signup" de Supabase apunta a `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` (ruta `/auth/confirm`). Las Redirect URLs deben terminar en `/**`.
 - Rutas protegidas por defecto: todo exige sesión salvo `/`, `/login`, `/registro` y `/auth/*` (`src/lib/auth/routes.ts`). Una ruta pública nueva se agrega ahí, con su test.
@@ -271,6 +275,7 @@ Si alguno de estos scripts no existe todavía en `package.json`, créalo.
 - Navegación: `NAV_ITEMS` en `AppNav.tsx` alimenta el header (escritorio) y la barra inferior (celular): Inicio, Movimientos, Metas y Presupuestos (la barra inferior tiene 4 columnas; revisa que quepa a 375 px si agregas otra). "Cerrar sesión" vive en el menú del avatar (`UserMenu`), en el header de todos los tamaños.
 - Campos de dinero en zod: usa `positiveAmount` de `src/lib/validations/money.ts` (mismo `parseCOP`, tope y mensajes en toda la app).
 - Tests de Server Actions: `vi.mock('@/lib/supabase/server', () => import('@/test/supabase-mock'))` y los helpers `supabaseMock`, `resetSupabaseMock`, `callsTo`, `touchedDb`. Si la acción hace varias consultas, encola un resultado por consulta en `supabaseMock.results`.
+- Tests e2e (`e2e/`): usa el fixture `testUser` de `e2e/fixtures.ts` (un usuario confirmado por test, creado y borrado con la API de administración del Supabase local) y `loginAs`. Selectores por rol/etiqueta en español (`getByRole`, `getByLabel`), nunca por clases. Corren en 375 px y escritorio; los que no necesitan navegador van en `*.db.spec.ts` (proyecto `db`). La `service_role` local solo vive en `e2e/`, nunca en `src/`.
 - Las vistas de Supabase se tipan con todas las columnas `| null`: normaliza cada fila con una función testeada (p. ej. `toGoal`) en vez de usar `!`.
 - Un archivo `'use server'` solo exporta funciones async (y tipos). Las constantes compartidas (mensajes, etc.) van en `src/lib/`; si no, el build falla aunque los tests pasen.
 - `usePathname()`/`useSearchParams()` en componentes del layout cuentan como datos de la URL en rutas dinámicas (`/metas/[id]`): van dentro de `<Suspense>` con un fallback (ver `AppNav`).

@@ -2,6 +2,7 @@ import { ArrowLeft, ReceiptText } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { connection } from 'next/server';
 import { Suspense } from 'react';
 import { z } from 'zod';
 
@@ -79,6 +80,8 @@ async function GoalDetail({ params }: Pick<PageProps<'/metas/[id]'>, 'params'>) 
   if (!goal) notFound();
 
   const contributions: Contribution[] = contributionsResult.data;
+  // Reading the current date needs request time under cacheComponents.
+  await connection();
   const today = todayInBogota();
 
   return (

@@ -1,6 +1,7 @@
 import { PieChart as PieChartIcon, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { connection } from 'next/server';
 import { Suspense } from 'react';
 
 import { ExpensesDonut } from '@/components/dashboard/ExpensesDonut';
@@ -56,6 +57,8 @@ async function Greeting() {
 
 async function DashboardView({ searchParams }: Pick<PageProps<'/dashboard'>, 'searchParams'>) {
   const params = await searchParams;
+  // Reading the current date needs request time under cacheComponents.
+  await connection();
   const month = parseMonthParam(typeof params.mes === 'string' ? params.mes : undefined);
   const { start, end } = monthRange(month);
   const monthParam = toMonthParam(month);

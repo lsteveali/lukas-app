@@ -154,3 +154,9 @@ vite.config.ts.timestamp-*
 next-env.d.ts
 .DS_Store
 *.pem
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
